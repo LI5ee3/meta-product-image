@@ -198,7 +198,7 @@ class MetaLayoutTests(unittest.TestCase):
         self.assertEqual((contract["width"], contract["height"]), (1086,1448))
         other = self.root/"Другой цвет.png"
         Image.new("RGBA", (330,210), "#8aaac0").save(other)
-        sku_args = dict(product_dir=str(product_dir),product=str(other),generated_background=None,redo=False,target=None)
+        sku_args = dict(product_dir=str(product_dir),product=str(other),generated_background=None,configuration=None,redo=False,target=None)
         self.quiet(create_sku, **sku_args)
         final = product_dir/"output/SKU_VARIANT-A.png"
         with Image.open(master) as a, Image.open(final) as b:
@@ -275,31 +275,30 @@ class MetaLayoutTests(unittest.TestCase):
         reusable = product_dir/"reusable"
         reusable.mkdir(parents=True)
         layout_path = reusable/"layout.json"
-        atomic_write(layout_path, {"product_directory":str(product_dir)}, new=True)
-        expected = layout_path.read_bytes()
-        with self.assertRaisesRegex(ValueError, "UNSUPPORTED_LAYOUT_STYLE"):
-            self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a",
-                       product=str(self.product), generated_background=None)
-        with self.assertRaisesRegex(ValueError, "UNSUPPORTED_LAYOUT_STYLE"):
-            self.quiet(build_prompt, layout=str(layout_path), mode="MASTER", master=None,
-                       redo=True, additional_prompt="Keep it light")
-        self.assertEqual(layout_path.read_bytes(), expected)
-        self.assertEqual(set(product_dir.rglob("*")), {reusable, layout_path})
+        for style in (None, "md3", "meta-clear-a"):
+            with self.subTest(style=style):
+                atomic_write(layout_path, {"product_directory":str(product_dir), "style":style})
+                expected = layout_path.read_bytes()
+                with self.assertRaisesRegex(ValueError, "UNSUPPORTED_LAYOUT_STYLE"):
+                    self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a",
+                               product=str(self.product), generated_background=None)
+                with self.assertRaisesRegex(ValueError, "UNSUPPORTED_LAYOUT_STYLE"):
+                    self.quiet(build_prompt, layout=str(layout_path), mode="MASTER", master=None,
+                               redo=True, additional_prompt="Keep it light")
+                with self.assertRaisesRegex(ValueError, "MASTER_CONFIGURATION_MISSING"):
+                    configuration_overlay({"style":style, "elements":{"CONFIGURATION_RECT":{"x":0}}}, reusable, "8/256 ГБ")
+                self.assertEqual(layout_path.read_bytes(), expected)
+                self.assertEqual(set(product_dir.rglob("*")), {reusable, layout_path})
 
-    def test_existing_meta_master_reuses_product_without_shadow(self):
+    def test_meta_master_reuse_and_prompt(self):
         layout = prepare_layout(self.args(configuration="8/256 ГБ"))
         product_dir = Path(layout["product_directory"])
-        layout["style"] = "meta-clear-a"
-        atomic_write(product_dir/"reusable/layout.json", layout)
         self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a",
                    product=str(self.product), generated_background=None)
         self.quiet(bind_candidate, product_dir=str(product_dir), candidate_id="a")
         reusable = product_dir/"reusable"
         master = verify_master(product_dir)
-        self.assertNotIn("shadow", master["files"])
-        # Earlier Meta manifests included an unused blank shadow entry.
-        master["files"]["shadow"] = {"path":"reusable/ORIGINAL_MASTER_SHADOW.png", "sha256":"unused"}
-        atomic_write(reusable/"master.json", master)
+        self.assertEqual(set(master["files"]), {"layout", "background", "product", "final"})
         master_hash = sha256_file(reusable/"master.json")
         args = dict(product_dir=str(product_dir), product=None, generated_background=None,
                     configuration=None, redo=False, target=None)
@@ -309,7 +308,6 @@ class MetaLayoutTests(unittest.TestCase):
         self.quiet(create_sku, **(args | {"redo":True}))
         self.assertEqual(sha256_file(final), sha256_file(product_dir/"output/ORIGINAL_MASTER_FINAL.png"))
         self.assertEqual(sha256_file(reusable/"master.json"), master_hash)
-        self.assertFalse(list(product_dir.rglob("*shadow*.png")))
         prompt_args = dict(layout=str(reusable/"layout.json"), mode="SKU",
                            master=str(reusable/"master.json"), redo=True, additional_prompt="Keep it light")
         with contextlib.redirect_stdout(io.StringIO()) as output:
@@ -321,6 +319,25 @@ class MetaLayoutTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()) as output:
             build_prompt(argparse.Namespace(**(prompt_args | {"redo":False, "additional_prompt":None})))
         self.assertIn("Keep it light", output.getvalue())
+
+        manifest_path = product_dir/"SKU_VARIANT-A-preview.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        final_hash = sha256_file(final)
+        manifest_path.unlink()
+        with self.assertRaisesRegex(ValueError, "JSON_UNREADABLE"):
+            self.quiet(create_sku, **(args | {"redo":True}))
+        self.assertEqual(sha256_file(final), final_hash)
+        without_configuration = dict(manifest)
+        del without_configuration["configuration"]
+        for invalid in (without_configuration, manifest | {"files":manifest["files"] | {"shadow":{}}}):
+            atomic_write(manifest_path, invalid)
+            with self.assertRaisesRegex(ValueError, "SKU_MANIFEST_INVALID"):
+                self.quiet(create_sku, **(args | {"redo":True}))
+            self.assertEqual(sha256_file(final), final_hash)
+        master["files"]["shadow"] = {}
+        atomic_write(reusable/"master.json", master)
+        with self.assertRaisesRegex(ValueError, "MASTER_ASSET_SET_MISMATCH"):
+            verify_master(product_dir)
 
 
 if __name__ == "__main__":

@@ -163,7 +163,7 @@ def draw_text_line(image, text, x, y, area_width, font, color,
 def configuration_overlay(layout: dict, reusable: Path, text: str) -> Image.Image:
     text = validate_configuration(text)
     rect = layout.get("elements", {}).get("CONFIGURATION_RECT")
-    if layout.get("style") not in {"meta", "meta-clear-a"} or not rect:
+    if layout.get("style") != "meta" or not rect:
         raise ValueError("MASTER_CONFIGURATION_MISSING: the master has no configuration line")
     font_path = Path(layout["font"]["path"])
     check_glyph_coverage(font_path, 500, text)
@@ -198,7 +198,7 @@ def prepare_layout(args: argparse.Namespace) -> dict:
         if any(not line for line in manual) or (args.title_lines == 1 and args.title_line_2):
             raise ValueError("TITLE_LINE_COUNT_MISMATCH")
         title = " ".join(manual)
-    configuration = getattr(args, "configuration", None)
+    configuration = args.configuration
     if configuration is not None:
         configuration = validate_configuration(configuration)
     texts = [title, args.version or "", configuration or "", *[f[k] for f in features for k in ("headline", "label")]]

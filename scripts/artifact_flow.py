@@ -305,16 +305,18 @@ def create_sku(args: argparse.Namespace) -> None:
     redo = bool(args.redo)
     sku_label = resolve_sku_label(product_dir, redo, args.target)
     paths = sku_preview_paths(product_dir, sku_label)
-    previous = read_json(paths["manifest"]) if redo and paths["manifest"].exists() else {}
-    reuse_background = redo and not args.generated_background and bool(previous)
+    previous = read_json(paths["manifest"]) if redo else {}
+    if redo and (set(previous.get("files", {})) != {"background", "product", "final"} or "configuration" not in previous):
+        raise ValueError("SKU_MANIFEST_INVALID")
+    reuse_background = redo and not args.generated_background
     if reuse_background:
         entry = previous["files"]["background"]
         if entry["path"] != paths["background"].relative_to(product_dir).as_posix() or sha256_file(paths["background"]) != entry["sha256"]:
             raise ValueError("SKU_BACKGROUND_HASH_MISMATCH")
         generated_background = paths["background"]
-    configuration = getattr(args, "configuration", None)
+    configuration = args.configuration
     if configuration is None:
-        configuration = previous.get("configuration", layout.get("configuration"))
+        configuration = previous["configuration"] if redo else layout["configuration"]
     if configuration is not None:
         configuration = validate_configuration(configuration)
         if not layout.get("elements", {}).get("CONFIGURATION_RECT"):
@@ -353,7 +355,7 @@ def create_sku(args: argparse.Namespace) -> None:
         run_composite(
             paths["background"], product_source, layout_path, paths["final"],
             "SKU_PREVIEW", paths["product"],
-            configuration if configuration != layout.get("configuration") else None,
+            configuration if configuration != layout["configuration"] else None,
         )
         require_matching_raster(paths["product"], expected_raster, "SKU_PRODUCT_LAYER")
         if not layers_exist:

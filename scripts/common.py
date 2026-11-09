@@ -100,8 +100,7 @@ def require_matching_raster(
 
 
 def verify_information_assets(layout: dict, reusable_dir: Path) -> None:
-    # Keep reading saved Meta layouts under their original style identifier.
-    if layout.get("style") not in {"meta", "meta-clear-a"}:
+    if layout.get("style") != "meta":
         raise ValueError("UNSUPPORTED_LAYOUT_STYLE: create a Meta master in a new output root")
     try:
         elements = layout["elements"]
@@ -134,6 +133,8 @@ def verify_master(product_dir: Path) -> dict:
         "product": reusable / "ORIGINAL_MASTER_PRODUCT.png",
         "final": product_dir / "output" / "ORIGINAL_MASTER_FINAL.png",
     }
+    if set(manifest["files"]) != set(expected):
+        raise ValueError("MASTER_ASSET_SET_MISMATCH")
     for label, expected_path in expected.items():
         entry = manifest["files"].get(label)
         try:
