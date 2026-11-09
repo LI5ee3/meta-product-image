@@ -9,6 +9,9 @@ from pathlib import Path
 
 from PIL import Image, ImageChops, ImageFilter
 
+from common import verify_information_assets
+from measure_text import configuration_overlay
+
 
 ANGLE_DEGREES = 50
 PRODUCT_HEIGHT_FRAC = 0.54
@@ -96,6 +99,17 @@ def target_box(rect: dict, width: int, height: int) -> tuple[int, int, int, int]
     return left, top, target_width, target_height
 
 
+def fit_product_in_box(product: Image.Image, rect: dict, width: int, height: int):
+    bbox = product.getchannel("A").getbbox()
+    if bbox is None:
+        raise ValueError("PRODUCT_EMPTY")
+    product = product.crop(bbox)
+    x, y, box_width, box_height = target_box(rect, width, height)
+    scale = min(box_width/product.width, box_height/product.height)
+    product = product.resize((max(1, round(product.width*scale)), max(1, round(product.height*scale))), Image.Resampling.LANCZOS)
+    return product, x+(box_width-product.width)//2, y+(box_height-product.height)//2
+
+
 def asset_path(reusable_dir: Path, rect: dict) -> Path:
     try:
         path = (reusable_dir / rect["asset"]).resolve()
@@ -148,6 +162,7 @@ def main() -> None:
     parser.add_argument("--product-layer", required=True)
     parser.add_argument("--shadow-mask", required=True)
     parser.add_argument("--reuse-layers", action="store_true")
+    parser.add_argument("--configuration")
     args = parser.parse_args()
 
     background_path = Path(args.background).expanduser().resolve()
@@ -167,6 +182,7 @@ def main() -> None:
             layout = json.load(handle)
         if layout.get("product_directory") != str(product_dir):
             raise ValueError("PRODUCT_DIRECTORY_MISMATCH")
+        verify_information_assets(layout, reusable_dir)
 
         background = load_image(background_path, "RGBA")
         width, height = background.size
@@ -180,6 +196,12 @@ def main() -> None:
                 raise ValueError("CACHED_LAYER_SIZE_MISMATCH")
             if product_layer.getchannel("A").getbbox() is None:
                 raise ValueError("CACHED_PRODUCT_LAYER_EMPTY")
+        elif layout.get("style") == "meta-clear-a":
+            product, left, top = fit_product_in_box(load_image(product_path, "RGBA"), layout["elements"]["PRODUCT_RECT"], width, height)
+            product_layer = Image.new("RGBA", background.size, (0, 0, 0, 0))
+            product_layer.alpha_composite(product, (left, top))
+            # Existing artifact manifests retain their shadow entry; A has no cast shadow.
+            shadow = Image.new("L", background.size, 0)
         else:
             product = clean_product(load_image(product_path, "RGBA"))
             max_width_frac, bottom_margin_frac = placement_limits(
@@ -211,14 +233,17 @@ def main() -> None:
         image = Image.alpha_composite(image, product_layer).convert("RGB").convert("RGBA")
 
         elements = layout["elements"]
-        logo_rect = elements["LOGO_RECT"]
-        title_rects = elements["TITLE_LINE_RECT"]
-        version_rect = elements.get("VERSION_TEXT_RECT")
-        paste_layer(image, reusable_dir, logo_rect, None, width, height)
-        for rect in title_rects:
-            paste_layer(image, reusable_dir, rect, TITLE_COLOR, width, height)
-        if version_rect:
-            paste_layer(image, reusable_dir, version_rect, VERSION_COLOR, width, height)
+        if args.configuration is not None:
+            overlay = configuration_overlay(layout, reusable_dir, args.configuration)
+            image.alpha_composite(overlay.resize((width, height), Image.Resampling.LANCZOS))
+        elif layout.get("style") == "meta-clear-a":
+            paste_layer(image, reusable_dir, elements["INFORMATION_OVERLAY_RECT"], None, width, height)
+        else:
+            paste_layer(image, reusable_dir, elements["LOGO_RECT"], None, width, height)
+            for rect in elements["TITLE_LINE_RECT"]:
+                paste_layer(image, reusable_dir, rect, TITLE_COLOR, width, height)
+            if "VERSION_TEXT_RECT" in elements:
+                paste_layer(image, reusable_dir, elements["VERSION_TEXT_RECT"], VERSION_COLOR, width, height)
 
         new_output(output)
         image.convert("RGB").save(output, "PNG")

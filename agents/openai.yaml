@@ -1,4 +1,4 @@
 interface:
-  display_name: "MD3 Product Image"
-  short_description: "生成 3:4 MD3 电商产品母版与 SKU 变体"
-  default_prompt: "使用 $md3-product-image 根据上传的产品图和 Logo 生成 3:4 MD3 母版；SKU 成功后直接输出成品"
+  display_name: "Meta A Product Image"
+  short_description: "A 版主图：自动换行、三俄语卖点与颜色/配置 SKU 复用"
+  default_prompt: "使用 $meta-product-image，新建母版仅从用户指定的官网网址整理三个俄语卖点；未指定网址则立即停止并提醒，不得自行寻找。以 A「Meta 清透层叠」创建主图预览，自动适配产品比例和长名称；已锁定母版支持颜色与内存配置复用，只换配置时仅更新配置行，无需重走完整流程"

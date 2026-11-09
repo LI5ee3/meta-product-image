@@ -1,40 +1,39 @@
 #!/usr/bin/env python3
-"""Prepare one reusable information-group layout for md3-product-image."""
+"""Measure and cache the Meta A layout, including three sourced Russian features."""
 
 import argparse
 import json
+import math
+import re
 import sys
-from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import urlparse
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from common import atomic_write, read_json, sha256_file
 
-from common import atomic_write, sha256_file
+ASSETS = Path(__file__).resolve().parent.parent / "assets"
+FONT_DEFAULT = ASSETS / "Rubik[wght].ttf"
+FONT_WEIGHT_DEFAULT = 600
+INK = (24, 42, 53, 255)
+SECONDARY = (71, 91, 105, 255)
+ACCENT = (36, 98, 131, 255)
+PRODUCT_BOX = (64, 308, 640, 478)
+VERSION_MIN_SIZE = 28
+FEATURE_HEADLINE_MIN_SIZE = 32
+FEATURE_LABEL_MIN_SIZE = 24
+CONFIGURATION_MIN_SIZE = 32
 
-FONT_DEFAULT = Path(__file__).resolve().parent.parent / "assets" / "Rubik[wght].ttf"
-FONT_WEIGHT_DEFAULT = 700
 
-
-def load_font(
-    font_path: Path, size: int, weight: int
-) -> ImageFont.FreeTypeFont:
+def load_font(font_path: Path, size: int, weight: int) -> ImageFont.FreeTypeFont:
     font = ImageFont.truetype(str(font_path), size)
     try:
         axes = font.get_variation_axes()
     except OSError:
         axes = []
     if axes:
-        if len(axes) != 1:
-            raise ValueError(
-                f"FONT_VARIATION_UNSUPPORTED: expected one axis, found {len(axes)}"
-            )
-        axis = axes[0]
-        minimum = int(axis["minimum"])
-        maximum = int(axis["maximum"])
-        if not minimum <= weight <= maximum:
-            raise ValueError(
-                f"FONT_WEIGHT_OUT_OF_RANGE: {weight} not in {minimum}..{maximum}"
-            )
+        if len(axes) != 1 or not axes[0]["minimum"] <= weight <= axes[0]["maximum"]:
+            raise ValueError("FONT_VARIATION_UNSUPPORTED")
         font.set_variation_by_axes([weight])
     return font
 
@@ -45,418 +44,296 @@ def mask_signature(font: ImageFont.FreeTypeFont, text: str) -> tuple:
 
 
 def check_glyph_coverage(font_path: Path, weight: int, *texts: str) -> None:
-    """Reject characters rendered as the font's missing-glyph box."""
     font = load_font(font_path, 96, weight)
     missing = mask_signature(font, "\U0010ffff")
-    absent = sorted(
-        {
-            ch
-            for text in texts
-            for ch in text
-            if not ch.isspace() and mask_signature(font, ch) == missing
-        }
-    )
+    absent = sorted({c for text in texts for c in text if not c.isspace()
+                     and mask_signature(font, c) == missing})
     if absent:
-        raise ValueError(
-            f"GLYPH_MISSING: {font_path} cannot render: {''.join(absent)}"
-        )
+        raise ValueError(f"GLYPH_MISSING: {''.join(absent)}")
 
 
 def render_text_mask(font: ImageFont.FreeTypeFont, text: str) -> Image.Image:
-    bbox = font.getbbox(text)
-    width = max(1, bbox[2] - bbox[0])
-    height = max(1, bbox[3] - bbox[1])
-    probe = Image.new("L", (width + 16, height + 16), 0)
-    ImageDraw.Draw(probe).text(
-        (8 - bbox[0], 8 - bbox[1]), text, font=font, fill=255
-    )
-    ink = probe.getbbox()
-    if ink is None:
-        raise ValueError(f"TEXT_EMPTY: {text!r} has no visible glyphs")
-    return probe.crop(ink)
+    box = font.getbbox(text)
+    mask = Image.new("L", (box[2]-box[0]+4, box[3]-box[1]+4))
+    ImageDraw.Draw(mask).text((2-box[0], 2-box[1]), text, font=font, fill=255)
+    if not mask.getbbox():
+        raise ValueError("TEXT_EMPTY")
+    return mask.crop(mask.getbbox())
 
 
-def font_for_lines_height(
-    font_path: Path, lines: list[str], target_height: int, weight: int
-) -> ImageFont.FreeTypeFont:
-    lo, hi = 1, max(16, target_height * 4)
-    candidates: list[tuple[int, int, ImageFont.FreeTypeFont]] = []
-    while lo <= hi:
-        size = (lo + hi) // 2
-        font = load_font(font_path, size, weight)
-        height = max(render_text_mask(font, line).height for line in lines)
-        candidates.append((abs(height - target_height), size, font))
-        if height < target_height:
-            lo = size + 1
-        elif height > target_height:
-            hi = size - 1
-        else:
-            hi = size - 1
-    return min(candidates, key=lambda item: (item[0], item[1]))[2]
+def image_metadata(path: Path) -> dict:
+    with Image.open(path) as im:
+        rgba = im.convert("RGBA")
+        box = rgba.getchannel("A").getbbox() or (0, 0, *im.size)
+        return {"path": str(path), "sha256": sha256_file(path), "width": im.width,
+                "height": im.height, "mode": im.mode, "format": im.format,
+                "visible_bbox": dict(zip(("left", "top", "right", "bottom"), box))}
 
 
-def image_metadata(image_path: Path) -> dict:
-    try:
-        with Image.open(image_path) as source:
-            source.load()
-            width, height = source.size
-            mode = source.mode
-            image_format = source.format
-            rgba = source.convert("RGBA")
-    except OSError as exc:
-        raise ValueError(f"PRODUCT_REFERENCE_UNREADABLE: {exc}") from exc
-    visible_bbox = rgba.getchannel("A").point(
-        lambda value: 255 if value >= 224 else 0
-    ).getbbox() or (0, 0, width, height)
-    return {
-        "path": str(image_path),
-        "sha256": sha256_file(image_path),
-        "width": width,
-        "height": height,
-        "mode": mode,
-        "format": image_format,
-        "ratio_exact_3_4": width * 4 == height * 3,
-        "visible_bbox": {
-            "left": visible_bbox[0],
-            "top": visible_bbox[1],
-            "right": visible_bbox[2],
-            "bottom": visible_bbox[3],
-        },
-    }
-
-
-def visible_logo(logo_path: Path) -> tuple[Image.Image, dict]:
-    try:
-        with Image.open(logo_path) as source:
-            source.load()
-            source_width, source_height = source.size
-            source_mode = source.mode
-            source_format = source.format
-            logo = source.convert("RGBA")
-    except OSError as exc:
-        raise ValueError(f"LOGO_UNREADABLE: {exc}") from exc
+def visible_logo(path: Path) -> tuple[Image.Image, dict]:
+    with Image.open(path) as source:
+        logo = source.convert("RGBA")
     bbox = logo.getchannel("A").getbbox()
-    if bbox is None:
-        raise ValueError(f"LOGO_EMPTY: no visible artwork in {logo_path}")
-    cropped = logo.crop(bbox)
-    return cropped, {
-        "source_path": str(logo_path),
-        "sha256": sha256_file(logo_path),
-        "source_width": source_width,
-        "source_height": source_height,
-        "source_mode": source_mode,
-        "source_format": source_format,
-        "visible_bbox": {
-            "left": bbox[0],
-            "top": bbox[1],
-            "right": bbox[2],
-            "bottom": bbox[3],
-        },
-        "cropped_width": cropped.width,
-        "cropped_height": cropped.height,
-        "cropped_asset": "logo.png",
-    }
+    if not bbox:
+        raise ValueError("LOGO_EMPTY")
+    return logo.crop(bbox), {"source_path": str(path), "sha256": sha256_file(path),
+                             "visible_bbox": list(bbox)}
 
 
 def resolve_product_directory(output_root: Path, complete_name: str) -> Path:
-    if (
-        not complete_name
-        or complete_name in {".", ".."}
-        or "/" in complete_name
-        or "\x00" in complete_name
-    ):
-        raise ValueError(
-            "PRODUCT_FOLDER_NAME_INVALID: complete name must be one exact folder name"
-        )
+    if (not complete_name or complete_name in {".", ".."}
+            or any(c in complete_name for c in '/\\\x00<>:"|?*')
+            or complete_name.endswith((" ", "."))):
+        raise ValueError("PRODUCT_FOLDER_NAME_INVALID: use one exact folder name")
     root = output_root.expanduser().resolve()
-    root.mkdir(parents=True, exist_ok=True)
-    candidate = root / complete_name
-    candidate.mkdir(exist_ok=True)
-    product_dir = candidate.resolve()
-    if product_dir.parent != root or product_dir.name != complete_name:
+    product_dir = (root / complete_name).resolve()
+    if product_dir.parent != root:
         raise ValueError("PRODUCT_FOLDER_OUTSIDE_ROOT")
-    (product_dir / "output").mkdir(exist_ok=True)
     return product_dir
 
 
-@dataclass
-class LayoutOptions:
-    title_height_frac: float = 0.045
-    version_height_frac: float = 0.0285
-    logo_height_frac: float = 0.073
-    logo_width_cap_frac: float = 0.30
-    left_margin_frac: float = 0.05
-    top_margin_frac: float = 0.05
-    title_top_frac: float = 0.18
-    title_version_gap_frac: float = 0.025
-    clearance_w_frac: float = 0.02
-    clearance_h_frac: float = 0.015
-    max_title_width_frac: float = 0.90
-    line_gap_factor: float = 0.45
-    font_path: Path = field(default_factory=lambda: FONT_DEFAULT)
-    font_weight: int = FONT_WEIGHT_DEFAULT
+def normalized_rect(rect, width: int, height: int) -> dict:
+    x, y, right, bottom = rect
+    return {"x": x/width, "y": y/height, "w": (right-x)/width, "h": (bottom-y)/height}
 
 
-def resolve_title_lines(
-    title_line_1: str,
-    title_line_2: str | None,
-    title_line_count: int,
-    canvas_width: int,
-    canvas_height: int,
-    opts: LayoutOptions,
-) -> tuple[str, list[str], ImageFont.FreeTypeFont]:
-    if title_line_count == 1:
-        if title_line_2 is not None:
-            raise ValueError("TITLE_LINE_2_UNEXPECTED: omit it for a one-line title")
-        lines = [title_line_1]
-    else:
-        lines = [title_line_1, title_line_2]
-
-    if any(not line for line in lines):
-        raise ValueError("TITLE_LINE_COUNT_MISMATCH")
-
-    rendered_title = "\n".join(lines)
-    target_height = round(opts.title_height_frac * canvas_height)
-    title_font = font_for_lines_height(
-        opts.font_path, lines, target_height, opts.font_weight
-    )
-    if any(
-        render_text_mask(title_font, line).width
-        > opts.max_title_width_frac * canvas_width
-        for line in lines
-    ):
-        raise ValueError("TITLE_LINE_OVERFLOW: user-selected line count does not fit")
-    return rendered_title, lines, title_font
+def text_width(font, text: str, tracking: float = 0) -> float:
+    return font.getlength(text) + max(0, len(text)-1)*tracking
 
 
-def normalized_rect(rect: tuple[float, float, float, float], width: int, height: int) -> dict:
-    left, top, right, bottom = rect
-    return {
-        "x": round(left / width, 6),
-        "y": round(top / height, 6),
-        "w": round((right - left) / width, 6),
-        "h": round((bottom - top) / height, 6),
-    }
+def wrap_two_lines(text: str, font, width: float, tracking: float = 0) -> list[str] | None:
+    if text_width(font, text, tracking) <= width:
+        return [text]
+    words = text.split(" ")
+    candidates = []
+    for i in range(1, len(words)):
+        lines = [" ".join(words[:i]), " ".join(words[i:])]
+        lengths = [text_width(font, line, tracking) for line in lines]
+        if max(lengths) <= width:
+            candidates.append((abs(lengths[0]-lengths[1]), lines))
+    return min(candidates, key=lambda item: item[0])[1] if candidates else None
 
 
-def clear_zones(
-    labeled_rects: list[tuple[str, tuple[float, float, float, float]]],
-    width: int,
-    height: int,
-    opts: LayoutOptions,
-) -> list[dict]:
-    pad_w = opts.clearance_w_frac * width
-    pad_h = opts.clearance_h_frac * height
-    padded = [
-        (
-            label,
-            (rect[0] - pad_w, rect[1] - pad_h, rect[2] + pad_w, rect[3] + pad_h),
-        )
-        for label, rect in labeled_rects
-    ]
-    zones = []
-    for label, rect in padded:
-        zones.append({"label": label, **normalized_rect(rect, width, height)})
-    for (_, upper), (_, lower) in zip(padded, padded[1:]):
-        left = max(upper[0], lower[0])
-        right = min(upper[2], lower[2])
-        top, bottom = upper[3], lower[1]
-        if bottom > top and right > left:
-            zones.append(
-                {
-                    "label": "CONNECTOR",
-                    **normalized_rect((left, top, right, bottom), width, height),
-                }
-            )
-    for zone in zones:
-        if (
-            zone["x"] < 0
-            or zone["y"] < 0
-            or zone["x"] + zone["w"] > 1
-            or zone["y"] + zone["h"] > 1
-        ):
-            raise ValueError(f"CLEAR_ZONE_OUT_OF_CANVAS: {zone['label']}")
-    return zones
+def fit_title(text: str, font_path: Path, scale: float, weight: int,
+              manual_lines: list[str] | None = None):
+    protected = re.sub(r"(\S+) (\d+[A-Za-z]*)(?= |$)", lambda m: m[1]+"\u00a0"+m[2], text)
+    sizes = [max(1, round(size*scale)) for size in (68, 64, 60, 56)]
+    sizes.extend(range(sizes[-1]-1, 0, -1))
+    for size in sizes:
+        font = load_font(font_path, size, weight)
+        tracking = -.035*font.size
+        lines = manual_lines or wrap_two_lines(protected, font, 672*scale, tracking)
+        if lines and all(text_width(font, line, tracking) <= 672*scale for line in lines):
+            return lines, font
+    raise ValueError("TITLE_CANNOT_FIT: text exceeds the canvas even at one pixel")
+
+
+def load_features(path: Path) -> list[dict]:
+    features = read_json(path)
+    if not isinstance(features, list) or len(features) != 3:
+        raise ValueError("FEATURES_REQUIRE_EXACTLY_THREE")
+    for f in features:
+        if not isinstance(f, dict) or any(not isinstance(f.get(k), str) or not f[k].strip()
+                                          for k in ("icon", "headline", "label", "source_url")):
+            raise ValueError("FEATURE_FIELDS_REQUIRED: icon, headline, label, source_url")
+        if any(c in f["headline"]+f["label"] for c in "\r\n"):
+            raise ValueError("FEATURE_TEXT_SINGLE_INPUT_LINE: wrapping is automatic")
+        if not re.fullmatch(r"[a-z0-9-]+", f["icon"]) or not (ASSETS/"lucide"/(f["icon"]+".png")).is_file():
+            raise ValueError(f"LUCIDE_ICON_UNAVAILABLE: {f['icon']}")
+        source = urlparse(f["source_url"])
+        if source.scheme != "https" or not source.hostname:
+            raise ValueError("FEATURE_OFFICIAL_SOURCE_REQUIRED: use an official HTTPS product page")
+    return features
+
+
+def validate_configuration(text: str) -> str:
+    text = text.strip()
+    if not text or any(c in text for c in "\r\n"):
+        raise ValueError("CONFIGURATION_SINGLE_LINE_REQUIRED")
+    return text
+
+
+def draw_text_line(image, text, x, y, area_width, font, color,
+                   align="center", line_height=1.08, spacing=0):
+    tracking = spacing*font.size
+    length = text_width(font, text, tracking)
+    if length > area_width+1:
+        raise ValueError(f"TEXT_OVERFLOW: {text}")
+    left = x+(area_width-length)/2 if align == "center" else x+area_width-length
+    ascent, descent = font.getmetrics()
+    baseline = y+(font.size*line_height-ascent-descent)/2+ascent
+    draw = ImageDraw.Draw(image)
+    for i, c in enumerate(text):
+        offset = font.getlength(text[:i+1])-font.getlength(c)+i*tracking
+        draw.text((left+offset, baseline), c, font=font, fill=color, anchor="ls")
+    return normalized_rect((left, y, left+length, y+font.size*line_height), *image.size)
+
+
+def configuration_overlay(layout: dict, reusable: Path, text: str) -> Image.Image:
+    text = validate_configuration(text)
+    rect = layout.get("elements", {}).get("CONFIGURATION_RECT")
+    if layout.get("style") != "meta-clear-a" or not rect:
+        raise ValueError("MASTER_CONFIGURATION_MISSING: the master has no configuration line")
+    font_path = Path(layout["font"]["path"])
+    check_glyph_coverage(font_path, 500, text)
+    with Image.open(reusable/layout["elements"]["INFORMATION_OVERLAY_RECT"]["asset"]) as source:
+        overlay = source.convert("RGBA")
+    width, height = overlay.size
+    font = load_font(font_path, round(rect["h"]*height/1.2), 500)
+    top = rect["y"]*height
+    # Clear only this isolated line; keep all other cached pixels intact.
+    overlay.paste((0, 0, 0, 0), (0, math.floor(top)-2, width, math.ceil(top+rect["h"]*height)+2))
+    draw_text_line(overlay, text, width/16, top, width*7/8, font, INK, line_height=1.2)
+    return overlay
 
 
 def prepare_layout(args: argparse.Namespace) -> dict:
-    opts = LayoutOptions(
-        font_path=Path(args.font_path), font_weight=args.font_weight
-    )
-    if not opts.font_path.is_file():
-        raise FileNotFoundError(f"FONT_UNAVAILABLE: {opts.font_path}")
     if args.canvas_height <= 0 or args.canvas_height % 4:
         raise ValueError("CANVAS_HEIGHT_INVALID: use a positive multiple of 4")
-
-    width, height = args.canvas_height * 3 // 4, args.canvas_height
-    check_glyph_coverage(
-        opts.font_path,
-        opts.font_weight,
-        args.title_line_1,
-        args.title_line_2 or "",
-        args.version or "",
-    )
-    rendered_title, title_lines, title_font = resolve_title_lines(
-        args.title_line_1,
-        args.title_line_2,
-        args.title_lines,
-        width,
-        height,
-        opts,
-    )
-
-    product_reference = Path(args.product_reference).expanduser().resolve()
-    logo_path = Path(args.logo).expanduser().resolve()
-    product_metadata = image_metadata(product_reference)
+    width, height = args.canvas_height*3//4, args.canvas_height
+    scale = height/1024
+    font_path = Path(args.font_path).expanduser().resolve()
     product_dir = resolve_product_directory(Path(args.output_root), args.complete_name)
-    reusable_dir = product_dir / "reusable"
-    reusable_dir.mkdir(exist_ok=True)
-    layout_path = reusable_dir / "layout.json"
-    if layout_path.exists():
-        raise ValueError(f"REFUSE_REMEASURE: reuse existing {layout_path}")
-    logo_art, logo_metadata = visible_logo(logo_path)
-    logo_art.save(reusable_dir / "logo.png")
+    reusable = product_dir/"reusable"
+    if (reusable/"layout.json").exists():
+        raise ValueError(f"REFUSE_REMEASURE: reuse existing {reusable/'layout.json'}")
+    features = load_features(Path(args.features))
+    title = args.title or args.complete_name
+    manual = None
+    if args.title_lines is not None or args.title_line_1 is not None or args.title_line_2 is not None:
+        if args.title or not args.title_lines or not args.title_line_1:
+            raise ValueError("TITLE_INPUT_CONFLICT: use --title or complete manual lines")
+        manual = [args.title_line_1] + ([args.title_line_2] if args.title_lines == 2 else [])
+        if any(not line for line in manual) or (args.title_lines == 1 and args.title_line_2):
+            raise ValueError("TITLE_LINE_COUNT_MISMATCH")
+        title = " ".join(manual)
+    configuration = getattr(args, "configuration", None)
+    if configuration is not None:
+        configuration = validate_configuration(configuration)
+    texts = [title, args.version or "", configuration or "", *[f[k] for f in features for k in ("headline", "label")]]
+    for weight in {400, 500, args.font_weight}:
+        check_glyph_coverage(font_path, weight, *texts)
+    title_lines, title_font = fit_title(title, font_path, scale, args.font_weight, manual)
+    # Supporting text follows the title only until its readability floor.
+    supporting_scale = min(1, title_font.size/(56*scale))
+    product_meta = image_metadata(Path(args.product_reference).expanduser().resolve())
+    logo, logo_meta = visible_logo(Path(args.logo).expanduser().resolve())
+    overlay = Image.new("RGBA", (width, height))
+    text_rects = []
 
-    x0 = opts.left_margin_frac * width
-    logo_height = opts.logo_height_frac * height
-    logo_width = logo_art.width * logo_height / logo_art.height
-    if logo_width > opts.logo_width_cap_frac * width:
-        scale = opts.logo_width_cap_frac * width / logo_width
-        logo_width *= scale
-        logo_height *= scale
-    logo_rect = (
-        x0,
-        opts.top_margin_frac * height,
-        x0 + logo_width,
-        opts.top_margin_frac * height + logo_height,
-    )
+    def text_line(text, x, y, area_width, font, color, align="center", line_height=1.08, spacing=0):
+        rect = draw_text_line(overlay, text, x*scale, y*scale, area_width*scale,
+                              font, color, align, line_height, spacing)
+        text_rects.append({"text": text, **rect})
+        return rect
 
-    title_masks = [render_text_mask(title_font, line) for line in title_lines]
-    title_top = max(opts.title_top_frac * height, logo_rect[3] + 0.02 * height)
-    title_rects = []
-    for index, (line, mask) in enumerate(zip(title_lines, title_masks), start=1):
-        mask_path = reusable_dir / f"title-{index}-mask.png"
-        mask.save(mask_path)
-        rect = (x0, title_top, x0 + mask.width, title_top + mask.height)
-        title_rects.append((line, rect, mask_path.name))
-        title_top += mask.height * (1 + opts.line_gap_factor)
-
+    lx, ly, lw, lh = (48, 42, 174, 62) if logo.width/logo.height > 2 else (48, 36, 76, 76)
+    logo_scale = min(lw*scale/logo.width, lh*scale/logo.height)
+    logo = logo.resize((round(logo.width*logo_scale), round(logo.height*logo_scale)), Image.Resampling.LANCZOS)
+    logo_xy = (round(lx*scale+(lw*scale-logo.width)/2), round(ly*scale+(lh*scale-logo.height)/2))
+    overlay.alpha_composite(logo, logo_xy)
+    logo_rect = normalized_rect((*logo_xy, logo_xy[0]+logo.width, logo_xy[1]+logo.height), width, height)
     version_rect = None
-    version_asset = None
-    version_font_size = None
     if args.version:
-        version_font = font_for_lines_height(
-            opts.font_path,
-            [args.version],
-            round(opts.version_height_frac * height),
-            opts.font_weight,
-        )
-        version_mask = render_text_mask(version_font, args.version)
-        version_asset = "version-mask.png"
-        version_mask.save(reusable_dir / version_asset)
-        gap = opts.title_version_gap_frac * height
-        top = title_rects[-1][1][3] + gap
-        version_rect = (x0, top, x0 + version_mask.width, top + version_mask.height)
-        version_font_size = version_font.size
+        version_font = load_font(font_path, max(math.ceil(VERSION_MIN_SIZE*scale), round(34*scale*supporting_scale)), 400)
+        version_rect = text_line(args.version, 264, 58, 456, version_font, SECONDARY, "right", 1.2)
+    title_rects = [text_line(line, 48, 156+i*title_font.size/scale*1.08, 672,
+                             title_font, INK, spacing=-.035) for i, line in enumerate(title_lines)]
+    x, y, w, h = PRODUCT_BOX
+    configuration_rect = None
+    if configuration:
+        configuration_font = load_font(font_path, max(math.ceil(CONFIGURATION_MIN_SIZE*scale), round(36*scale*supporting_scale)), 500)
+        configuration_top = 156+len(title_lines)*title_font.size/scale*1.08+12
+        configuration_rect = text_line(configuration, 48, configuration_top, 672, configuration_font, INK, line_height=1.2)
+        product_top = max(y, configuration_top+configuration_font.size/scale*1.2+20)
+        h, y = y+h-product_top, product_top
 
-    labeled_rects = [("LOGO_RECT", logo_rect)]
-    labeled_rects.extend(
-        (f"TITLE_LINE_RECT_{index}", rect)
-        for index, (_, rect, _) in enumerate(title_rects, start=1)
-    )
+    column_width = 664/3
+    headline_font = None
+    for size in (36, 34, 32):
+        candidate = load_font(font_path, max(math.ceil(FEATURE_HEADLINE_MIN_SIZE*scale), round(size*scale*supporting_scale)), 500)
+        if all(text_width(candidate, f["headline"], -.025*candidate.size) <= (column_width-16)*scale for f in features):
+            headline_font = candidate
+            break
+    if headline_font is None:
+        raise ValueError("FEATURE_HEADLINE_OVERFLOW: shorten the selling-point headline")
+    label_font = load_font(font_path, max(math.ceil(FEATURE_LABEL_MIN_SIZE*scale), round(26*scale*supporting_scale)), 400)
+    labels = [wrap_two_lines(f["label"], label_font, (column_width-16)*scale) for f in features]
+    if any(lines is None for lines in labels):
+        raise ValueError("FEATURE_LABEL_OVERFLOW: shorten the Russian label to two lines")
+    headline_height = headline_font.size/scale*1.12
+    label_height = label_font.size/scale*1.18
+    panel_height = 20+38+12+headline_height+7+max(map(len, labels))*label_height+20
+    if 812+panel_height > 1014:
+        raise ValueError("FEATURE_PANEL_OVERFLOW")
+    panel_box = tuple(round(v*scale) for v in (48, 812, 720, 812+panel_height))
+    panel = Image.new("RGBA", overlay.size)
+    ImageDraw.Draw(panel).rounded_rectangle(panel_box, radius=round(28*scale), fill=(255,255,255,217))
+    shadow = Image.new("RGBA", overlay.size)
+    shifted = (panel_box[0], panel_box[1]+round(10*scale), panel_box[2], panel_box[3]+round(10*scale))
+    ImageDraw.Draw(shadow).rounded_rectangle(shifted, radius=round(28*scale), fill=(69,103,135,10))
+    overlay = Image.alpha_composite(overlay, shadow.filter(ImageFilter.GaussianBlur(15*scale)))
+    overlay = Image.alpha_composite(overlay, panel)
+    for i, (f, lines) in enumerate(zip(features, labels)):
+        left = 52+i*column_width
+        if i:
+            draw = ImageDraw.Draw(overlay)
+            draw.line(((round(left*scale), round(832*scale)), (round(left*scale), round((792+panel_height)*scale))), fill=(182,201,215,102), width=max(1,round(scale)))
+        with Image.open(ASSETS/"lucide"/(f["icon"]+".png")) as source:
+            mask = source.getchannel("A").resize((round(38*scale),)*2, Image.Resampling.LANCZOS)
+        icon = Image.new("RGBA", mask.size, ACCENT)
+        icon.putalpha(mask)
+        overlay.alpha_composite(icon, (round((left+(column_width-38)/2)*scale), round(832*scale)))
+        text_line(f["headline"], left+8, 882, column_width-16, headline_font, INK, line_height=1.12, spacing=-.025)
+        for j, line in enumerate(lines):
+            text_line(line, left+8, 882+headline_height+7+j*label_height, column_width-16, label_font, SECONDARY, line_height=1.18)
+
+    reusable.mkdir(parents=True, exist_ok=True)
+    (product_dir/"output").mkdir(exist_ok=True)
+    overlay.save(reusable/"information-overlay.png")
+    elements = {"LOGO_RECT": logo_rect, "TITLE_LINE_RECT": title_rects,
+                "PRODUCT_RECT": normalized_rect((x, y, x+w, y+h), 768, 1024),
+                "FEATURE_PANEL_RECT": normalized_rect((48, 812, 720, 812+panel_height), 768, 1024),
+                "INFORMATION_OVERLAY_RECT": {"x":0,"y":0,"w":1,"h":1,"asset":"information-overlay.png"}}
     if version_rect:
-        labeled_rects.append(("VERSION_TEXT_RECT", version_rect))
-
-    elements = {
-        "LOGO_RECT": {**normalized_rect(logo_rect, width, height), "asset": "logo.png"},
-        "TITLE_LINE_RECT": [
-            {
-                "line": line,
-                **normalized_rect(rect, width, height),
-                "asset": asset,
-            }
-            for line, rect, asset in title_rects
-        ],
-        "TITLE_FONT_SIZE": title_font.size,
-    }
-    if version_rect:
-        elements["VERSION_TEXT_RECT"] = {
-            "text": args.version,
-            **normalized_rect(version_rect, width, height),
-            "asset": version_asset,
-        }
-        elements["VERSION_FONT_SIZE"] = version_font_size
-
-    information_assets = {
-        "logo": {
-            "path": "logo.png",
-            "sha256": sha256_file(reusable_dir / "logo.png"),
-        }
-    }
-    for index, (_, _, asset) in enumerate(title_rects, start=1):
-        information_assets[f"title_{index}"] = {
-            "path": asset,
-            "sha256": sha256_file(reusable_dir / asset),
-        }
-    if version_asset:
-        information_assets["version"] = {
-            "path": version_asset,
-            "sha256": sha256_file(reusable_dir / version_asset),
-        }
-
-    report = {
-        "product_directory": str(product_dir),
-        "canvas": {
-            "width": width,
-            "height": height,
-            "ratio": "3:4",
-            "purpose": "logical layout only",
-        },
-        "font": {
-            "path": str(opts.font_path),
-            "name": "Rubik Variable",
-            "weight": opts.font_weight,
-        },
-        "product_reference": product_metadata,
-        "logo": logo_metadata,
-        "title_line_count": args.title_lines,
-        "complete_name": args.complete_name,
-        "rendered_title": rendered_title,
-        "title_lines": title_lines,
-        "version": args.version,
-        "elements": elements,
-        "information_assets": information_assets,
-        "clear_zones": clear_zones(labeled_rects, width, height, opts),
-    }
-    atomic_write(layout_path, report, new=True)
+        elements["VERSION_TEXT_RECT"] = version_rect
+    if configuration_rect:
+        elements["CONFIGURATION_RECT"] = configuration_rect
+    report = {"schema":2, "style":"meta-clear-a", "product_directory":str(product_dir),
+              "canvas":{"width":width,"height":height,"ratio":"3:4","purpose":"logical layout only"},
+              "font":{"path":str(font_path),"name":"Rubik Variable","weight":args.font_weight},
+              "product_reference":product_meta, "logo":logo_meta, "complete_name":args.complete_name,
+              "rendered_title":"\n".join(title_lines), "title_lines":title_lines, "title_line_count":len(title_lines),
+              "title_font_size":title_font.size, "version":args.version, "configuration":configuration, "features":features,
+              "feature_label_lines":labels, "elements":elements, "text_rects":text_rects,
+              "information_assets":{"overlay":{"path":"information-overlay.png","sha256":sha256_file(reusable/"information-overlay.png")}},
+              "clear_zones":[{"label":"TOP_INFORMATION",**normalized_rect((32,20,736,y-4),768,1024)},
+                             {"label":"BOTTOM_FEATURES",**normalized_rect((32,800,736,1024),768,1024)}]}
+    atomic_write(reusable/"layout.json", report, new=True)
     return report
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--complete-name", required=True)
-    parser.add_argument("--title-lines", required=True, type=int, choices=(1, 2))
-    parser.add_argument("--title-line-1", required=True)
+    parser.add_argument("--title", help="display name; defaults to complete product name")
+    parser.add_argument("--title-lines", type=int, choices=(1,2))
+    parser.add_argument("--title-line-1")
     parser.add_argument("--title-line-2")
-    parser.add_argument("--version", default=None)
+    parser.add_argument("--version")
+    parser.add_argument("--configuration", help='optional user-supplied configuration, e.g. "8/256 ГБ"')
+    parser.add_argument("--features", required=True, help="JSON array of exactly three sourced Russian features")
     parser.add_argument("--product-reference", required=True)
     parser.add_argument("--logo", required=True)
-    parser.add_argument(
-        "--output-root",
-        required=True,
-        help="parent directory; the exact complete product name is appended automatically",
-    )
+    parser.add_argument("--output-root", required=True)
     parser.add_argument("--canvas-height", type=int, default=2048)
     parser.add_argument("--font-path", default=str(FONT_DEFAULT))
     parser.add_argument("--font-weight", type=int, default=FONT_WEIGHT_DEFAULT)
-    args = parser.parse_args()
-
     try:
-        report = prepare_layout(args)
-    except (FileNotFoundError, ValueError) as exc:
+        report = prepare_layout(parser.parse_args())
+    except (OSError, ValueError) as exc:
         sys.exit(str(exc))
-    json.dump(report, sys.stdout, ensure_ascii=False, indent=2)
-    print()
+    print(json.dumps(report, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

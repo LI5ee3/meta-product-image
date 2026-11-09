@@ -1,222 +1,132 @@
 ---
-name: md3-product-image
-description: "Create portrait 3:4 Google Classic MD3 e-commerce product images with Image Gen backgrounds and locally composited product images, fixed 2D shadows, Logo, and Rubik Variable text. Use for product main images, user-locked masters, or automatic locked-layout SKU variants and SKU redos."
+name: meta-product-image
+description: "Create reusable 3:4 Meta Astryx-inspired A product images with exact local product/Logo compositing, automatic two-line titles and three sourced Russian selling points with Lucide icons. Use for product main images, user-locked masters, color SKU variants and redos."
 ---
 
-# MD3 Product Image
+# Meta A Product Image
 
-## Resolve inputs once
+Use the user-approved A “清透层叠” design in [DESIGN.md](DESIGN.md).
+Invoke this Skill with $meta-product-image.
 
-Reuse only inputs from the current task and files in the exact same complete-product-name directory. For the first master request, require:
+## Default workflow
 
-- authoritative product PNG or WEBP with assumed Alpha channel
-- original Logo PNG or WEBP with assumed Alpha channel
-- complete product name, exact title line text, and optional version
-- `TITLE_LINES`: `1` or `2`
+USER_PROVIDED_URL -> OFFICIAL_FACTS -> MEASURE_ONCE -> LOCAL_PREVIEW -> USER_LOCK -> SKU
 
-Never infer `TITLE_LINES`. Render each user-supplied title line exactly as written. Do not derive or validate title text from the complete product name.
+Reuse the bundled approved background and local information overlay. The default workflow needs no Image Gen call, palette extraction, browser or HTML renderer.
+Generate a new background only when the user requests one.
 
-## Keep one product in one directory
+## 1. Inputs and official facts
 
-Use `<output root>/<exact complete product name>` as `PRODUCT_DIRECTORY`. Keep all reusable files in `PRODUCT_DIRECTORY/reusable`:
+Before creating a new master or researching new facts, require an official product-page URL explicitly supplied by the user for this product (a URL already supplied in this conversation counts). If absent, stop immediately and reply: “请提供该产品的官网页面网址；未提供网址，已停止制作。” Do not search, guess a URL, use an example URL as authorization, extract facts, measure or generate a new master while it is missing. Reusing a bound master for color or memory/storage changes uses its previously approved facts and sources; do not repeat source collection or ask for the same URL again.
 
-- `layout.json`, `prompt-additions.json`, cropped Logo, and text masks
-- `palette.json` and `palette-reference.png` for the MASTER source
-- source-hash-keyed SKU palette assets under `reusable/palettes/`
-- cached placed product layers and fixed 2D shadows
-- bound master background, product, shadow, and `master.json`
+For a new product obtain the authoritative product PNG/WEBP, original Logo, complete model name, optional agreed display name, optional version text, optional user-supplied configuration, and three useful facts from the user-specified official page for this exact model/region. Do not select a memory/storage configuration from the website on the user's behalf.
 
-Keep only `output/ORIGINAL_MASTER_FINAL.png` and confirmed sequential `output/SKU_VARIANT-*.png` files in `output`. Keep full-size previews, manifests, and other temporary artifacts in `PRODUCT_DIRECTORY`. Never create thumbnails.
+The version example is “Глобальная версия”. Do not infer that inventory is global from the design example.
 
-`layout.json` uses a canonical logical 3:4 layout canvas. The current default logical canvas is `1536 × 2048`, but this is a coordinate system for deterministic placement, not a promise that the Image Gen delivery raster will be exactly `1536 × 2048`.
+Read only the product-page URL(s) specified by the user for selling-point research. Never independently search for or select another source page. If the supplied page is inaccessible, not official, mismatches the model, or lacks enough reliable facts, stop and ask the user to supply a suitable official URL; do not find a replacement yourself. Retain the supplied URL and material conditions. Translate to short Russian headlines and explanations. Battery duration must retain “До” and its mode; distinguish typical capacity, charging limits and camera modes where relevant. Never borrow facts from another model or invent missing specifications.
 
-## Run one user-controlled attempt
+Write a UTF-8 JSON array of exactly three entries:
+- icon: a bundled Lucide name;
+- headline: one compact line, usually a number or benefit;
+- label: a short Russian explanation, automatically fitted to at most two lines;
+- source_url: the official HTTPS product-page URL explicitly specified by the user;
+- source_note: optional supporting fact, qualification or verification note.
 
-Use:
+See [references/features-example.json](references/features-example.json). Its facts apply only to OnePlus Watch 4, never to another product.
+Bundled icons: watch, activity, battery, camera, monitor, volume-2. Match the icon to the fact. Additional icons must come from official Lucide SVGs with matching transparent PNGs and license; see assets/lucide/README.md. Do not improvise icons or use emoji.
 
-`MEASURE -> PALETTE -> BUILD_PROMPT -> IMAGE_GEN_BACKGROUND -> LOCAL_FULL_COMPOSITE -> MASTER_USER_LOCK_OR_REDO`
+Use normal Russian case, decimal commas and consistent units such as мА·ч, Гц and Мп. Use ASCII double quote for inches rather than unsupported U+2033. Do not add unrequested prices or promotional claims.
 
-Each user generation instruction permits exactly one Image Gen call and one full-size composite. Local measurement, palette extraction, hashing, cache verification, prompt construction, and deterministic composition do not count as image-model calls.
+## 2. Measure once
 
-Never inspect a generated background separately, decide visual success, or retry automatically. Deterministic failures such as an unreadable file, wrong ratio, master/SKU raster mismatch, hash mismatch, palette-cache mismatch, or missing raster stop the run and are reported to the user without another Image Gen call. Assume uploaded product and Logo files are PNG or WEBP with Alpha; do not preflight their format or transparency. If Alpha is unavailable or fully opaque, continue using the full image bounds.
+Run from the Skill directory using Python with Pillow:
 
-The generated background's actual raster is authoritative for the local composite. Do not upscale or resample a valid 3:4 MASTER background merely to force the logical `1536 × 2048` layout size. After the user locks the MASTER, its actual raster becomes the required raster for every SKU of that product.
+    python scripts/measure_text.py --complete-name "<complete model name>" --product-reference "<product.png>" --logo "<logo.png>" --features "<features.json>" --version "Глобальная версия" --output-root "<output root>"
 
-### 1. Measure or reuse
+Omit --version when not supplied. The complete name is the default title. Use --title "<display name>" only when supplied or agreed; do not silently remove model information.
 
-For the first master, run `scripts/measure_text.py` with the authoritative product, Logo, complete product name, `--title-lines`, `--title-line-1`, optional `--title-line-2` and `--version`, and `--output-root`. Always use bundled `assets/Rubik[wght].ttf` with `--font-weight 700`.
+When the user supplies a configuration, append --configuration "8/256 ГБ" (using their actual value). It is a separate centered line below the final title line and above the product, never part of the title or one of the three benefits. It stays on one line, uses weight 500 and 36 px with a 32 px minimum on the 768×1024 reference canvas. Keep 12 px after the title and at least 20 px before the product box. A two-line title pushes the product box down while preserving its bottom edge; contain scaling keeps the full product visible. With no configuration, omit the line and retain the original layout.
 
-The script creates `PRODUCT_DIRECTORY/reusable/layout.json`, the cropped Logo, and title/version masks. If the layout already exists, reuse it. Stop if the source identity conflicts with its recorded hashes; never silently replace reusable assets.
+The script creates <output root>/<complete model name>/reusable/layout.json and information-overlay.png.
+It measures the actual font, chooses one or two title lines, and keeps model-number groups together. If the normal title sizes do not fit, automatically reduce the font size until the full name fits; do not ask the user to shorten it. No ellipsis, horizontal squeezing or silent truncation. Version and feature text may follow the title's reduction only down to their readability floors: version 28 px, feature headline 32 px, feature explanation 24 px on the 768×1024 reference canvas (56/64/48 px on the 1536×2048 logical canvas). Scale these floors with the canvas; never shrink below them to accommodate a title. Preserve hierarchy through title placement and weight 600, feature headline weight 500, and secondary-colored version/explanation weight 400.
 
-Treat the canvas recorded by `measure_text.py` as logical normalized layout coordinates. `compose_image.py` applies those normalized positions to the actual 3:4 raster delivered by Image Gen.
+Exact manually requested lines remain supported by --title-lines 1|2, --title-line-1 and optional --title-line-2. Do not combine them with --title.
 
-### 2. Prepare or verify the deterministic material palette reference
+Three features use equal columns, bounded headline sizes and word-boundary wrapping of explanations to at most two lines. Overlong text fails before saving the layout. At the minimum size, shorten a selling-point phrase without changing its fact or qualification, then rerun; never lower the floor. If supplied version text cannot fit, request a concise version label without changing its meaning.
 
-Image Gen must not receive the complete product artwork merely to learn colors. Palette analysis must represent product material colors, not active display content.
+The logical canvas is 1536×2048. Products use one centered contain box measured from source Alpha bounds. Preserve proportions and all visible artwork; watches, phones, tablets and different source margins use the same rule.
 
-Before invoking `palette_cache.py`, inspect the authoritative product image semantically. If a visible electronic display is present, identify each visible display-content rectangle in source-image normalized coordinates `x0,y0,x1,y1` and pass it with a repeatable `--exclude-box` argument. Do not derive display exclusions from color or histogram heuristics.
+The cached overlay contains the Logo, title, optional version and configuration, three icons and their text on a translucent rounded panel. Rubik weights: title 600, configuration and feature headline 500, other text 400. Its SHA-256 is checked. Color SKUs reuse it unchanged; configuration SKUs replace only the configuration line in a temporary copy, preserving the master and every other cached pixel.
 
-Apply these category rules:
+Reuse an existing layout. Never remeasure or overwrite a product directory silently. To redesign a locked old product, use a new output root and preserve the old master/SKUs.
 
-- Smartwatch / watch with a display: exclude the visible screen/display surface; keep strap, case, bezel/frame, crown, and other exterior hardware eligible.
-- Phone / tablet front view: exclude the visible screen/display surface; keep the physical frame/bezel eligible.
-- Phone / tablet back or side view with no visible display content: do not add a display exclusion. Back cover and frame remain eligible.
-- Multiple visible displays: pass one `--exclude-box` per display.
+## 3. Master preview and lock
 
-The extractor expands every supplied display rectangle by 2% of the visible product bounding box on each axis before sampling. This suppresses anti-aliased screen edges, glow, and nearby display-content spill while leaving surrounding product materials available.
+    python scripts/artifact_flow.py preview --product "<product.png>" --product-dir "<PRODUCT_DIRECTORY>" --candidate-id a
 
-For a MASTER, run:
+The default background is assets/meta-clear/background.png. Output uses its actual raster, not a forced logical size. The exact product and Logo remain local. A has no old 50° cast shadow.
+Show the completed full-size preview and stop; do not automatically bind it.
 
-```text
-python scripts/palette_cache.py \
-  --source <authoritative-product.png-or-webp> \
-  --product-dir <PRODUCT_DIRECTORY> \
-  --role MASTER \
-  [--exclude-box <x0,y0,x1,y1>] ...
-```
+Only after the explicit instruction “锁定母版”:
 
-This creates or verifies:
+    python scripts/artifact_flow.py bind --product-dir "<PRODUCT_DIRECTORY>" --candidate-id a
 
-```text
-PRODUCT_DIRECTORY/reusable/palette.json
-PRODUCT_DIRECTORY/reusable/palette-reference.png
-```
+This binds the inspected pixels and actual raster to output/ORIGINAL_MASTER_FINAL.png and reusable/master.json. Selecting a design direction alone is not locking a product master.
 
-For an SKU, run:
+## 4. Color and configuration SKU reuse
 
-```text
-python scripts/palette_cache.py \
-  --source <current-SKU.png-or-webp> \
-  --product-dir <PRODUCT_DIRECTORY> \
-  --role SKU \
-  [--exclude-box <x0,y0,x1,y1>] ...
-```
+After locking, use another color of the same model/specification:
 
-SKU palette assets are cached under:
+    python scripts/artifact_flow.py sku --product "<sku.png>" --product-dir "<PRODUCT_DIRECTORY>"
 
-```text
-PRODUCT_DIRECTORY/reusable/palettes/
-```
+It reuses the locked background, overlay and raster, fits the new source's visible bounds, and writes output/SKU_VARIANT-A.png, B, etc. Successful SKU composition needs no new confirmation or model call.
 
-Cache identity is the exact source SHA-256 plus the semantic display-exclusion policy when exclusions are present. The same source pixels with different display exclusions must not resolve to the same SKU cache. For a fixed MASTER cache path, a verified source with a changed exclusion policy is deterministically refreshed and reported as `refreshed_for_policy: true`. Never reuse a cache whose source identity or reference hash does not verify.
+For a different memory/storage configuration of the same model, supply only the new value:
 
-Use the `palette_reference` path returned by `palette_cache.py` as the only SKU color reference. The palette extractor is local and deterministic after the semantic display rectangles have been supplied. Transparent pixels below the fixed alpha threshold and pixels inside expanded display exclusions do not contribute to palette selection. The generated palette reference contains color bands only—no screen UI, product silhouette, Logo, text, label, icon, packaging, or hardware geometry. The extractor also writes structured background-separation guidance derived from the product material colors: a dominant material color, preferred safe background colors, forbidden near-collision colors, and a minimum lightness-separation rule.
+    python scripts/artifact_flow.py sku --product-dir "<PRODUCT_DIRECTORY>" --configuration "12/512 ГБ"
 
-The authoritative product image remains available locally for the final product composite; palette extraction does not replace or alter the source product artwork.
+This reuses the locked background, product layer, title, version, features, layout and raster; only the configuration line is redrawn at its locked position and font size. Do not research facts again, remeasure, generate a background, create another master or request another lock. The existing master must already contain a configuration line; saved A layouts with CONFIGURATION_RECT work without migration. The version and three facts must still apply to the variant.
 
-### 3. Build one prompt
+To change color and configuration together, add --product "<new color.png>". New SKUs with no --configuration inherit the master's configuration. A different model/name or other changes to displayed facts still require a separate master.
 
-For a master:
+Redo the latest SKU:
 
-```text
-python scripts/scene_prompt.py build --mode MASTER --layout <reusable/layout.json>
-```
+    python scripts/artifact_flow.py sku --product-dir "<PRODUCT_DIRECTORY>" --redo
 
-For an SKU:
+For an explicitly named SKU add --target SKU_VARIANT-A. On redo, omitted --product, --configuration and --generated-background preserve that SKU's current product, configuration and background. Append --configuration "12/512 ГБ" to change only its configuration. Retain source identity when reusing cached layers.
+A redo preserves the old final until all checks pass, atomically replaces the same filename and does not consume a sequence label.
 
-```text
-python scripts/scene_prompt.py build --mode SKU --layout <reusable/layout.json> --master <reusable/master.json>
-```
+## 5. Optional background changes
 
-`scene_prompt.py build` writes the complete Image Gen prompt to stdout. Capture that successful stdout and pass it verbatim to Image Gen in the same tool flow. Stop before Image Gen if the command fails or stdout is empty.
+Only when requested:
 
-The active master background prompt in `references/image-gen-prompt.md` is the validated structured palette-only prompt. The v2.0 prose prompt is retained only at `references/image-gen-prompt-v2-baseline.txt` for regression, ablation, and fallback comparison; do not use it by default.
+    python scripts/scene_prompt.py build --mode MASTER --layout "<PRODUCT_DIRECTORY>/reusable/layout.json"
 
-The prompt order is:
+For a locked SKU use --mode SKU --master "<PRODUCT_DIRECTORY>/reusable/master.json".
+For a redo append --redo and, only when the user supplied extra requirements, --additional-prompt "<request>". Additions accumulate by product.
 
-1. current `references/image-gen-prompt.md`
-2. fixed SKU edit block for SKU only
-3. merged information safe-zone block
-4. dynamic background-separation block derived from the current material palette
-5. every user-supplied accumulated addition from `reusable/prompt-additions.json`
-6. canonical product and shadow placement policy
+Pass successful stdout verbatim to Image Gen. For a new A background, pass assets/meta-clear/background.png as the sole referenced_image_paths input; for an SKU use the verified locked ORIGINAL_MASTER_BACKGROUND.png. Inspect an unseen reference first. Omit num_last_images_to_include. Request an opaque background; never send product art, Logo, text or final composites to the model.
 
-The merged safe rectangle contains the measured Logo, every title line, and optional version rectangle, expands the union by 5% of the logical canvas on every side, and clips it to the canvas. It is the only mandatory empty zone. Separately, the dynamic background-separation block instructs Image Gen to keep the backdrop visually distinct from the product material colors. This is a color-separation policy only, not a second geometric safe zone.
+A requested change permits one model call. In functions.exec forward the result with generatedImage(result). Missing/unreadable raster, wrong ratio or SKU size mismatch stops the run; never automatically regenerate or resize it.
 
-Prompt additions persist by exact complete product name and accumulate chronologically across the master and all SKUs. Add text only when the user supplies it with a redo instruction. If no addition has ever been supplied, rebuild from the original prompt plus the required SKU, safe-zone, and canonical blocks. Never invent a correction.
+The prompt keeps top and bottom quiet regions separate. Never merge them across the product. The local renderer supplies the selling-point panel.
 
-For a MASTER, send exactly the verified `reusable/palette-reference.png` as the sole Image Gen reference image. Do not send the authoritative product image to Image Gen.
+For a master redo, discard the previous candidate while keeping reusable product layers:
 
-For an SKU, send exactly two Image Gen references:
+    python scripts/artifact_flow.py discard-preview --product-dir "<PRODUCT_DIRECTORY>" --candidate-id a
 
-1. `reusable/ORIGINAL_MASTER_BACKGROUND.png` as the authoritative composition reference
-2. the verified current SKU `palette_reference` returned by `palette_cache.py` as the color-only palette reference
+Then preview with --generated-background "<new background.png>". For SKU use that option on sku --redo. Every SKU background must exactly match the locked master's actual raster; matching only the aspect ratio is insufficient.
 
-Do not send the current SKU product artwork to Image Gen. It remains local and authoritative for deterministic product composition. After `palette_cache.py` completes for an SKU, write `PRODUCT_DIRECTORY/reusable/current-sku-palette.json` pointing to the exact current cached palette JSON and reference PNG. `scene_prompt.py build --mode SKU` must read this pointer and use its background-separation guidance.
+## Existing MD3 products
 
-At the callable boundary, always use `referenced_image_paths` with only the exact reference files defined above. Omit `num_last_images_to_include` entirely; do not pass `0`, `null`, or another value together with explicit paths. The tested Work Image Gen interface treats `referenced_image_paths` and `num_last_images_to_include` as mutually exclusive.
+Old saved layouts/masters stay readable with their original placement, colors and shadow. They are not migrated in place. Legacy master previews require an explicit --generated-background.
 
-Do not set or infer Image Gen parameters for model selection, quality/effort, output size/resolution, background/transparency, output format, or action/mode. Those controls are not directly exposed by the validated Work + Skill callable interface. Public API capabilities are not production authority for this Skill.
+The legacy prompt and palette scripts remain for background redos of old products, using their existing palette references, current-sku-palette.json and references/image-gen-prompt-legacy-md3.md. New A layouts do not use that palette branch.
 
-Image Gen creates only the empty background; never send Logo, text, masks, final composites, or another SKU.
+## Files and checks
 
-When calling Image Gen through `functions.exec`, forward its return value with `generatedImage(result)`. If no accessible raster is delivered, report the deterministic delivery failure and stop.
+Only confirmed ORIGINAL_MASTER_FINAL.png and SKU_VARIANT-*.png belong in output. Cache layout, overlay, bound background and layers in reusable; keep full-size previews outside output. Do not generate production thumbnails.
 
-### 4. Composite and show one master preview
+Check source identity, glyphs, complete outline, title/feature fit, exactly three facts, version, actual raster and output preservation. The user owns master visual acceptance.
 
-Run:
-
-```text
-python scripts/artifact_flow.py preview --generated-background <background> --product <product.png> --product-dir <PRODUCT_DIRECTORY> --candidate-id <id>
-```
-
-The command first verifies that the delivered MASTER background is an exact 3:4 raster, then immediately creates one full-size composite at that same actual raster containing the exact cached or newly prepared product layer, its fixed shadow, cached Logo, and cached text. Reuse an existing product layer and shadow for the same candidate; a redo changes only the background and final preview. Show the full-size preview and stop.
-
-Do not use visual heuristics to accept, reject, or regenerate. The user owns the visual decision.
-
-### 5. Lock or redo the master
-
-Only after the explicit instruction `锁定母版`, run:
-
-```text
-python scripts/artifact_flow.py bind --product-dir <PRODUCT_DIRECTORY> --candidate-id <id>
-```
-
-This promotes the exact inspected pixels, records the actual locked raster in `reusable/master.json`, and creates the bound reusable master files plus `output/ORIGINAL_MASTER_FINAL.png`.
-
-For legacy bound masters created before the raster field existed, the workflow may derive the contract from the verified `ORIGINAL_MASTER_BACKGROUND.png`; it must never guess a different size.
-
-Only after `重做母版`, run:
-
-```text
-python scripts/artifact_flow.py discard-preview --product-dir <PRODUCT_DIRECTORY> --candidate-id <id>
-python scripts/scene_prompt.py build --mode MASTER --layout <reusable/layout.json> --redo [--additional-prompt <user text>]
-```
-
-Then verify/reuse the same MASTER palette reference, build, generate, composite, show exactly one new preview, and stop. The optional addition is stored and automatically included in this and all later prompts for the product.
-
-### 6. Create or redo one SKU
-
-After the master is bound, prepare or verify the current SKU palette reference, build and generate one SKU background, then run:
-
-```text
-python scripts/artifact_flow.py sku --generated-background <background> --product <current-SKU.png-or-webp> --product-dir <PRODUCT_DIRECTORY>
-```
-
-Before compositing, the script verifies that the SKU background's actual width and height exactly match the locked MASTER raster. A background that is still 3:4 but has different pixel dimensions fails with `SKU_BACKGROUND_RASTER_MISMATCH`; report the deterministic failure and stop without another Image Gen call.
-
-The script writes the completed image directly to its automatically assigned sequential `output/SKU_VARIANT-*.png`, closes the SKU run, and returns the final image. Treat a successful deterministic composite as accepted; do not ask for confirmation.
-
-Only after an explicit SKU redo request, build with the existing label:
-
-```text
-python scripts/scene_prompt.py build --mode SKU --layout <reusable/layout.json> --master <reusable/master.json> --redo [--additional-prompt <user text>]
-```
-
-Prompt construction is SKU-label independent. Reuse the cached product layer, shadow, and source-hash-keyed palette reference for the SKU being redone. Generate one replacement background, then run:
-
-```text
-python scripts/artifact_flow.py sku --generated-background <background> --product <current-SKU.png-or-webp> --product-dir <PRODUCT_DIRECTORY> --redo [--target <SKU_VARIANT-X>]
-```
-
-Use `--target <SKU_VARIANT-X>` on `artifact_flow.py sku` when the user explicitly names an SKU; otherwise the redo resolves the most recently completed SKU. Keep the existing output unchanged until the replacement composite passes deterministic checks, including the MASTER raster contract, then atomically replace it without changing the filename. A failed redo must preserve the existing final. A redo does not consume a new sequential label.
-
-For a new SKU after any redo, omit `--redo`; assign the next unused label normally.
-
-## Preserve local composition
-
-Add the exact source Logo, user-supplied title lines, and optional version in that order. Preserve their artwork, characters, spacing, proportions, and alpha. Use only proportional Logo scaling and Rubik Variable text. Use weight 700 by default; change the weight only when the user explicitly requests it. Keep the manually selected line count and title text unchanged.
-
-Use visible product height 54% and right margin 12%. For aspect ratio `>= 1.35`, use maximum width 68% and bottom margin 18%. For aspect ratio `< 0.90`, use maximum width 52% and bottom margin 12%. Otherwise use maximum width 52% and bottom margin 18%. Use shadow angle 50°, offset 16% of product height, blur radius 0.7% of canvas height, and opacity 28%.
-
-Keep the Logo and text on the visible Logo left edge. Keep the title-to-version gap at 2.5% of canvas height. Always render the product name as `#2C2C2C` and version text as `#5A5A5A`; never adapt or override these colors. Report any visual concern with the full preview, but wait for the user's decision.
+    python -B -m unittest discover -s tests -v

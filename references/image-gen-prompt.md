@@ -1,39 +1,22 @@
 ## DELIVERABLE
-Create one portrait 3:4 professional e-commerce product hero background plate in the official Google Material Design 3 (Classic MD3) visual language.
-Generate the empty background plate only. The final output from the image model must contain background geometry and color only.
+Create one portrait 3:4 empty product-image background in the selected Meta Astryx-inspired A direction.
+Generate only background surfaces, light and color. Product artwork, Logo, text, Lucide icons and the information panel are composed locally.
 
-## REFERENCE ROLES
-PALETTE_REFERENCE: authoritative color-only palette reference.
-Use it only to understand dominant color relationships for the background palette.
-The reference contains color information only and must not be treated as a source of product identity, object geometry, typography, branding, labels, icons, packaging, or other semantic content.
-Do not infer or invent a product silhouette, hardware geometry, screen, strap, packaging, label, icon, text, brand mark, or recognizable object from the palette reference.
+## REFERENCE
+The supplied background is the approved A design or this product's locked background. Preserve its restrained blue-white palette, translucent curves and broad composition.
+Do not introduce any new product, product silhouette, packaging, brand or text.
 
-## VISUAL SYSTEM
-Use refined neumorphic soft-UI styling with smooth rounded forms, softly raised and recessed surfaces, subtle ambient occlusion, diffused highlights, restrained elevation, and gentle same-material shadows.
-Keep the result clearly aligned with Google Material Design 3 Classic rather than M3 Expressive.
-Avoid flat papercraft styling, hard graphic borders, sharp outlines, high-contrast edges, dense decorative detail, and realistic physical environments.
+## VISUAL LANGUAGE
+Use cool off-white and very pale ice blue, softly curved frosted layers, subtle material texture, broad diffuse daylight and low-contrast shadows.
+The center remains spacious for watches, phones and landscape tablets.
+Geometry belongs mostly to the sides and middle; it must not compete with the product.
+Avoid neon, dark technology effects, orange plaster, raised buttons, dense ornament or a literal floor/podium.
 
-## PALETTE
-Translate the dominant hue relationships from PALETTE_REFERENCE into a light classic macaron palette suitable for an e-commerce background.
-Increase lightness and reduce saturation while preserving the reference's overall color relationships.
-Use restrained accent colors only as small supporting embellishments.
-Do not use literal near-black, deep navy, burgundy, saturated red, or strong orange as dominant background colors.
+## INFORMATION REGIONS
+The upper information region and bottom 22% must remain quiet and pale. The upper region grows when a two-line name includes a configuration line; follow the exact bounds appended below.
+The appended layout specifies two separate quiet regions. Never combine them into one large empty rectangle through the center.
+Do not draw a card or panel behind the future selling points; the local renderer adds that panel.
 
-## COMPOSITION
-Use a minimal, balanced composition built from layered neumorphic panels, rounded capsules, soft discs, and gently recessed or elevated shapes.
-Keep broad calm areas and sufficient negative space for later deterministic local composition.
-Do not create a physical floor, table, display stand, stage, studio set, room, landscape, or other literal environment.
-Background cards and restrained elevation shadows may occupy the future product area unless prohibited by the measured information safe-zone block appended by the workflow.
-Avoid dominant edges or dense detail that would compete with the locally composited product.
-
-## LIGHTING
-Use bright, neutral, high-key illumination with broad diffused highlights and very soft low-contrast shadows.
-Keep the background airy, calm, premium, and softly dimensional.
-
-## EXCLUSIONS
-Do not generate any product, product silhouette, product shadow, copied or inferred product geometry, packaging, Logo, brand mark, text, label, icon, watermark, floor, table, display stand, realistic environment, or unrelated object.
-
-## OUTPUT CONTRACT
-Return exactly one empty 3:4 background plate.
-No embedded typography, branding, product artwork, product-like object, or foreground merchandise may appear in the image.
-The background must remain suitable for deterministic local placement of the exact source product, fixed local shadow, source Logo, and locally rendered text.
+## OUTPUT
+Return exactly one empty 3:4 raster. For a locked product, match its required actual raster.
+No text, numbers, logo, icon, product, product shadow, watermark or border.

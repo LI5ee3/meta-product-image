@@ -21,9 +21,10 @@ Avoid only dominant high-contrast edges or dense detail that visibly competes wi
 SKU_EDIT_BLOCK = """Use ORIGINAL_MASTER_BACKGROUND as the authoritative composition reference and SKU_PALETTE_REFERENCE only as the authoritative color reference. Keep the background composition unchanged and adapt only its colors to SKU_PALETTE_REFERENCE. Do not infer or copy any product identity, geometry, silhouette, screen, strap, label, icon, branding, text, or packaging from the palette reference. Generate the empty background plate only. Do not add any product, product shadow, Logo, or text."""
 
 
-def image_prompt() -> str:
+def image_prompt(layout: dict) -> str:
+    reference = IMAGE_PROMPT_REFERENCE if layout.get("style") == "meta-clear-a" else SKILL_DIR / "references" / "image-gen-prompt-legacy-md3.md"
     try:
-        prompt = IMAGE_PROMPT_REFERENCE.read_text(encoding="utf-8").rstrip("\n")
+        prompt = reference.read_text(encoding="utf-8").rstrip("\n")
     except OSError as exc:
         raise ValueError(
             f"REFERENCE_UNREADABLE: {IMAGE_PROMPT_REFERENCE}: {exc}"
@@ -35,6 +36,17 @@ def image_prompt() -> str:
 
 def information_safe_zone_block(layout: dict) -> str:
     zones = layout.get("clear_zones")
+    if layout.get("style") == "meta-clear-a":
+        if not isinstance(zones, list) or {z.get("label") for z in zones} != {"TOP_INFORMATION", "BOTTOM_FEATURES"}:
+            raise ValueError("INFORMATION_SAFE_ZONES_MISSING")
+        lines = ["Two separate quiet information regions; do not merge them across the product:"]
+        for zone in zones:
+            x, y, w, h = (float(zone[k]) for k in ("x", "y", "w", "h"))
+            if not (0 <= x < x+w <= 1 and 0 <= y < y+h <= 1):
+                raise ValueError("INFORMATION_SAFE_ZONE_OUT_OF_CANVAS")
+            lines.append(f"- {zone['label']}: x {x*100:.1f}%-{(x+w)*100:.1f}%, y {y*100:.1f}%-{(y+h)*100:.1f}%")
+        lines.append("Keep both regions pale and calm. Leave the middle available for subtle layered curves behind the locally composited product. Do not generate the information panel, text or icons.")
+        return "\n".join(lines)
     selected = [
         zone
         for zone in zones or []
@@ -176,17 +188,18 @@ def build_prompt(args: argparse.Namespace) -> None:
         additions.append(addition)
         atomic_write(additions_path, additions)
 
-    palette_payload = load_palette_payload(product_dir, args.mode)
-
-    parts = [image_prompt()]
+    meta = layout.get("style") == "meta-clear-a"
+    parts = [image_prompt(layout)]
     if args.mode == "SKU":
-        parts.append(SKU_EDIT_BLOCK)
+        parts.append("Use the locked master background as the layout and color reference. Preserve its pale blue-white Astryx composition; generate an empty background only." if meta else SKU_EDIT_BLOCK)
     parts.append(information_safe_zone_block(layout))
-    parts.append(background_separation_block(palette_payload, args.mode))
+    if not meta:
+        parts.append(background_separation_block(load_palette_payload(product_dir, args.mode), args.mode))
     increment = additions_block(additions)
     if increment:
         parts.append(increment)
-    parts.append(PRODUCT_AREA_POLICY)
+    if not meta:
+        parts.append(PRODUCT_AREA_POLICY)
     sys.stdout.write("\n\n".join(parts))
 
 

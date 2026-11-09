@@ -1,0 +1,10 @@
+{
+  "design": "A Meta 清透层叠",
+  "approval": "用户选择 A 并要求改造现有 Skill",
+  "file": "background.png",
+  "width": 1086,
+  "height": 1448,
+  "sha256": "ee67e1c7b29af207f71b123ae90edce71b78b6933543956abe934358c9d69b96",
+  "method": "Built-in imagegen, background only, generated 2026-11-09",
+  "prompt": "Generate a premium abstract product advertising BACKGROUND ONLY, portrait 3:4. Art direction: quiet, refined Meta Astryx inspired light interface surfaces translated into a dimensional studio background. Very pale ice blue and warm white, a huge softly curved frosted sheet sweeping from left middle to right lower middle; a second translucent blue arc behind it creates real atmospheric depth. Carefully art directed diffused daylight and extremely subtle fine material texture. Background is visibly designed, not a flat gradient, but remains subordinate to an electronic product that will be added later. Composition: TOP 25% nearly white and quiet for dark typography; middle 30%-78% a broad clean open softly illuminated display area for a large watch, phone or tablet; shapes strongest along side edges and behind this middle area; BOTTOM 20% nearly white and quiet for three specification columns. The center must remain spacious. Sophisticated cool restrained palette, precise elegant layered curved planes. No product, no device, no watch, no phone, no tablet, no text, no numbers, no letters, no logo, no icons, no furniture, no little decorative particles. Full bleed, no border, no collage."
+}

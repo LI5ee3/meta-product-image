@@ -1,0 +1,32 @@
+[
+  {
+    "name": "battery",
+    "sha": "1e87f1b9da2927635c1263ab74703ab32ab3e127",
+    "url": "https://github.com/lucide-icons/lucide/blob/main/icons/battery.svg"
+  },
+  {
+    "name": "activity",
+    "sha": "629b81c9fd020f3afec659daa5c9c7e5a1d07445",
+    "url": "https://github.com/lucide-icons/lucide/blob/main/icons/activity.svg"
+  },
+  {
+    "name": "watch",
+    "sha": "b0abd1e48a582ff96b7672112f4136dd261db7d8",
+    "url": "https://github.com/lucide-icons/lucide/blob/main/icons/watch.svg"
+  },
+  {
+    "name": "camera",
+    "sha": "1e82bf45f3c522db0e22f16e0a5fc8fd00b79b7e",
+    "url": "https://github.com/lucide-icons/lucide/blob/main/icons/camera.svg"
+  },
+  {
+    "name": "monitor",
+    "sha": "e869f2f27acef115bc121a0bf62e1d01834c6b17",
+    "url": "https://github.com/lucide-icons/lucide/blob/main/icons/monitor.svg"
+  },
+  {
+    "name": "volume-2",
+    "sha": "519e6cbd4d2693a38f7db0e396354cc07b9f4e26",
+    "url": "https://github.com/lucide-icons/lucide/blob/main/icons/volume-2.svg"
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "icon": "watch",
+    "headline": "Титановый",
+    "label": "корпус",
+    "source_url": "https://www.oneplus.com/global/oneplus-watch-4",
+    "source_note": "Titanium watch body; OnePlus Watch 4 only."
+  },
+  {
+    "icon": "activity",
+    "headline": "100+",
+    "label": "режимов спорта",
+    "source_url": "https://www.oneplus.com/global/oneplus-watch-4",
+    "source_note": "100+ sports modes; OnePlus Watch 4 only."
+  },
+  {
+    "icon": "battery",
+    "headline": "До 5 дней",
+    "label": "смарт-режим",
+    "source_url": "https://www.oneplus.com/global/oneplus-watch-4",
+    "source_note": "Up to 5 days in Smart Mode; actual life depends on use."
+  }
+]

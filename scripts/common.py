@@ -1,4 +1,4 @@
-"""Shared file helpers for the MD3 workflow."""
+"""Shared file helpers for product-image masters and SKU variants."""
 
 import hashlib
 import json
@@ -103,13 +103,16 @@ def verify_information_assets(layout: dict, reusable_dir: Path) -> None:
     try:
         elements = layout["elements"]
         assets = layout["information_assets"]
-        expected = {"logo": elements["LOGO_RECT"]["asset"]}
-        expected.update(
-            (f"title_{index}", title["asset"])
-            for index, title in enumerate(elements["TITLE_LINE_RECT"], 1)
-        )
-        if "VERSION_TEXT_RECT" in elements:
-            expected["version"] = elements["VERSION_TEXT_RECT"]["asset"]
+        if layout.get("style") == "meta-clear-a":
+            expected = {"overlay": elements["INFORMATION_OVERLAY_RECT"]["asset"]}
+        else:
+            expected = {"logo": elements["LOGO_RECT"]["asset"]}
+            expected.update(
+                (f"title_{index}", title["asset"])
+                for index, title in enumerate(elements["TITLE_LINE_RECT"], 1)
+            )
+            if "VERSION_TEXT_RECT" in elements:
+                expected["version"] = elements["VERSION_TEXT_RECT"]["asset"]
     except (KeyError, TypeError) as exc:
         raise ValueError("INFORMATION_ASSETS_INVALID") from exc
     if set(assets) != set(expected):
@@ -120,7 +123,7 @@ def verify_information_assets(layout: dict, reusable_dir: Path) -> None:
             path = (reusable_dir / entry["path"]).resolve()
         except (KeyError, TypeError) as exc:
             raise ValueError(f"INFORMATION_ASSET_INVALID: {label}") from exc
-        if path != (reusable_dir / name).resolve() or not path.is_file():
+        if path.parent != reusable_dir.resolve() or path != (reusable_dir / name).resolve() or not path.is_file():
             raise ValueError(f"INFORMATION_ASSET_PATH_MISMATCH: {label}")
         if sha256_file(path) != entry.get("sha256"):
             raise ValueError(f"INFORMATION_ASSET_HASH_MISMATCH: {label}")
