@@ -87,8 +87,8 @@ class MetaLayoutTests(unittest.TestCase):
                 rects = {r["text"]: r for r in layout["text_rects"]}
                 sizes = [(rects[layout["version"]]["h"]*height/1.2, 28)]
                 for feature, lines in zip(layout["features"], layout["feature_label_lines"]):
-                    sizes.append((rects[feature["headline"]]["h"]*height/1.12, 32))
-                    sizes.extend((rects[line]["h"]*height/1.18, 24) for line in lines)
+                    sizes.append((rects[feature["headline"]]["h"]*height/1.12, 26))
+                    sizes.extend((rects[line]["h"]*height/1.18, 22) for line in lines)
                 for actual, minimum in sizes:
                     self.assertGreaterEqual(actual+1e-8, minimum*height/1024)
                     self.assertLess(actual, minimum*height/1024+1)
@@ -96,6 +96,35 @@ class MetaLayoutTests(unittest.TestCase):
                     self.assertGreaterEqual(min(r["x"], r["y"]), 0)
                     self.assertLessEqual(r["x"]+r["w"], 1)
                     self.assertLessEqual(r["y"]+r["h"], 1)
+
+    def test_long_features_shrink_and_center_each_text_area(self):
+        features = json.loads(self.features.read_text(encoding="utf-8"))
+        for feature, (headline, label) in zip(features, (
+            ("Защита экрана", "и корпуса на 360°"),
+            ("Аппаратное снижение", "уровня синего света"),
+            ("Мощные", "двойные динамики"),
+        )):
+            feature.update(headline=headline, label=label)
+        self.features.write_text(json.dumps(features), encoding="utf-8")
+        for height in (1024, 1448, 2048):
+            layout = prepare_layout(self.args(canvas_height=height, complete_name=f"Center {height}"))
+            rects = {r["text"]: r for r in layout["text_rects"]}
+            self.assertEqual(len(layout["feature_headline_lines"][1]), 2)
+            self.assertEqual(len(layout["feature_label_lines"][1]), 2)
+            for key, field in (("feature_headline_lines", "headline"), ("feature_label_lines", "label")):
+                centers = []
+                for i, lines in enumerate(layout[key]):
+                    self.assertEqual(" ".join(lines), features[i][field])
+                    bounds = [rects[line] for line in lines]
+                    centers.append((bounds[0]["y"]+bounds[-1]["y"]+bounds[-1]["h"])/2)
+                    for r in bounds:
+                        self.assertAlmostEqual(r["x"]+r["w"]/2, (52+(i+.5)*664/3)/768)
+                self.assertAlmostEqual(min(centers), max(centers))
+            size = rects[layout["feature_headline_lines"][1][0]]["h"]*height/1.12
+            self.assertGreaterEqual(size+1e-8, 26*height/1024)
+            self.assertLess(size, 26*height/1024+1)
+            panel = layout["elements"]["FEATURE_PANEL_RECT"]
+            self.assertLessEqual(panel["y"]+panel["h"], 1014/1024)
 
     def test_visible_product_bounds_cover_wide_tall_and_square(self):
         rect = {"x":64/768,"y":308/1024,"w":640/768,"h":478/1024}

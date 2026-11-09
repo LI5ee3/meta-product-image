@@ -20,8 +20,8 @@ SECONDARY = (71, 91, 105, 255)
 ACCENT = (36, 98, 131, 255)
 PRODUCT_BOX = (64, 308, 640, 478)
 VERSION_MIN_SIZE = 28
-FEATURE_HEADLINE_MIN_SIZE = 32
-FEATURE_LABEL_MIN_SIZE = 24
+FEATURE_HEADLINE_MIN_SIZE = 26
+FEATURE_LABEL_MIN_SIZE = 22
 CONFIGURATION_MIN_SIZE = 32
 
 
@@ -240,23 +240,26 @@ def prepare_layout(args: argparse.Namespace) -> dict:
         h, y = y+h-product_top, product_top
 
     column_width = 664/3
-    headline_font = None
-    for size in (36, 34, 32):
-        candidate = load_font(font_path, max(math.ceil(FEATURE_HEADLINE_MIN_SIZE*scale), round(size*scale*supporting_scale)), 500)
-        if all(text_width(candidate, f["headline"], -.025*candidate.size) <= (column_width-16)*scale for f in features):
-            headline_font = candidate
-            break
-    if headline_font is None:
-        raise ValueError("FEATURE_HEADLINE_OVERFLOW: select shorter official wording; do not rewrite or add explanations")
-    label_font = load_font(font_path, max(math.ceil(FEATURE_LABEL_MIN_SIZE*scale), round(26*scale*supporting_scale)), 400)
+    label_font = load_font(font_path, math.ceil(FEATURE_LABEL_MIN_SIZE*scale), 400)
     labels = [wrap_two_lines(f["label"], label_font, (column_width-16)*scale) for f in features]
     if any(lines is None for lines in labels):
-        raise ValueError("FEATURE_LABEL_OVERFLOW: select official wording whose Russian text fits two lines; do not rewrite or add explanations")
-    headline_height = headline_font.size/scale*1.12
+        raise ValueError("FEATURE_LABEL_OVERFLOW: repartition the same official wording before selecting another fact")
     label_height = label_font.size/scale*1.18
-    panel_height = 20+38+12+headline_height+7+max(map(len, labels))*label_height+20
-    if 812+panel_height > 1014:
-        raise ValueError("FEATURE_PANEL_OVERFLOW")
+    label_area_height = max(map(len, labels))*label_height
+    for size in (28, 26):
+        headline_font = load_font(font_path, max(math.ceil(FEATURE_HEADLINE_MIN_SIZE*scale), round(size*scale*supporting_scale)), 500)
+        headlines = [wrap_two_lines(f["headline"], headline_font, (column_width-16)*scale,
+                                    -.025*headline_font.size) for f in features]
+        if any(lines is None for lines in headlines):
+            continue
+        headline_height = headline_font.size/scale*1.12
+        headline_area_height = max(map(len, headlines))*headline_height
+        panel_height = 20+30+12+headline_area_height+7+label_area_height+20
+        if 812+panel_height <= 1014:
+            break
+    else:
+        error = "FEATURE_HEADLINE_OVERFLOW" if any(lines is None for lines in headlines) else "FEATURE_PANEL_OVERFLOW"
+        raise ValueError(error + ": repartition the same official wording; do not truncate or shrink below the minimum")
     panel_box = tuple(round(v*scale) for v in (48, 812, 720, 812+panel_height))
     panel = Image.new("RGBA", overlay.size)
     ImageDraw.Draw(panel).rounded_rectangle(panel_box, radius=round(28*scale), fill=(255,255,255,217))
@@ -265,19 +268,22 @@ def prepare_layout(args: argparse.Namespace) -> dict:
     ImageDraw.Draw(shadow).rounded_rectangle(shifted, radius=round(28*scale), fill=(69,103,135,10))
     overlay = Image.alpha_composite(overlay, shadow.filter(ImageFilter.GaussianBlur(15*scale)))
     overlay = Image.alpha_composite(overlay, panel)
-    for i, (f, lines) in enumerate(zip(features, labels)):
+    for i, (f, headline_lines, lines) in enumerate(zip(features, headlines, labels)):
         left = 52+i*column_width
         if i:
             draw = ImageDraw.Draw(overlay)
             draw.line(((round(left*scale), round(832*scale)), (round(left*scale), round((792+panel_height)*scale))), fill=(182,201,215,102), width=max(1,round(scale)))
         with Image.open(ASSETS/"lucide"/(f["icon"]+".png")) as source:
-            mask = source.getchannel("A").resize((round(38*scale),)*2, Image.Resampling.LANCZOS)
+            mask = source.getchannel("A").resize((round(30*scale),)*2, Image.Resampling.LANCZOS)
         icon = Image.new("RGBA", mask.size, ACCENT)
         icon.putalpha(mask)
-        overlay.alpha_composite(icon, (round((left+(column_width-38)/2)*scale), round(832*scale)))
-        text_line(f["headline"], left+8, 882, column_width-16, headline_font, INK, line_height=1.12, spacing=-.025)
+        overlay.alpha_composite(icon, (round((left+(column_width-30)/2)*scale), round(832*scale)))
+        headline_y = 874+(headline_area_height-len(headline_lines)*headline_height)/2
+        label_y = 874+headline_area_height+7+(label_area_height-len(lines)*label_height)/2
+        for j, line in enumerate(headline_lines):
+            text_line(line, left+8, headline_y+j*headline_height, column_width-16, headline_font, INK, line_height=1.12, spacing=-.025)
         for j, line in enumerate(lines):
-            text_line(line, left+8, 882+headline_height+7+j*label_height, column_width-16, label_font, SECONDARY, line_height=1.18)
+            text_line(line, left+8, label_y+j*label_height, column_width-16, label_font, SECONDARY, line_height=1.18)
 
     reusable.mkdir(parents=True, exist_ok=True)
     (product_dir/"output").mkdir(exist_ok=True)
@@ -296,7 +302,7 @@ def prepare_layout(args: argparse.Namespace) -> dict:
               "product_reference":product_meta, "logo":logo_meta, "complete_name":args.complete_name,
               "rendered_title":"\n".join(title_lines), "title_lines":title_lines, "title_line_count":len(title_lines),
               "title_font_size":title_font.size, "version":args.version, "configuration":configuration, "features":features,
-              "feature_label_lines":labels, "elements":elements, "text_rects":text_rects,
+              "feature_headline_lines":headlines, "feature_label_lines":labels, "elements":elements, "text_rects":text_rects,
               "information_assets":{"overlay":{"path":"information-overlay.png","sha256":sha256_file(reusable/"information-overlay.png")}},
               "clear_zones":[{"label":"TOP_INFORMATION",**normalized_rect((32,20,736,y-4),768,1024)},
                              {"label":"BOTTOM_FEATURES",**normalized_rect((32,800,736,1024),768,1024)}]}
