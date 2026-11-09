@@ -1,9 +1,9 @@
 ## DELIVERABLE
-Create one portrait 3:4 empty product-image background in the selected Meta Astryx-inspired A direction.
+Create one portrait 3:4 empty product-image background in the selected Meta Astryx-inspired direction.
 Generate only background surfaces, light and color. Product artwork, Logo, text, Lucide icons and the information panel are composed locally.
 
 ## REFERENCE
-The supplied background is the approved A design or this product's locked background. Preserve its restrained blue-white palette, translucent curves and broad composition.
+The supplied background is the approved Meta design or this product's locked background. Preserve its restrained blue-white palette, translucent curves and broad composition.
 Do not introduce any new product, product silhouette, packaging, brand or text.
 
 ## VISUAL LANGUAGE

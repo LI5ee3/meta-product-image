@@ -100,19 +100,13 @@ def require_matching_raster(
 
 
 def verify_information_assets(layout: dict, reusable_dir: Path) -> None:
+    # Keep reading saved Meta layouts under their original style identifier.
+    if layout.get("style") not in {"meta", "meta-clear-a"}:
+        raise ValueError("UNSUPPORTED_LAYOUT_STYLE: create a Meta master in a new output root")
     try:
         elements = layout["elements"]
         assets = layout["information_assets"]
-        if layout.get("style") == "meta-clear-a":
-            expected = {"overlay": elements["INFORMATION_OVERLAY_RECT"]["asset"]}
-        else:
-            expected = {"logo": elements["LOGO_RECT"]["asset"]}
-            expected.update(
-                (f"title_{index}", title["asset"])
-                for index, title in enumerate(elements["TITLE_LINE_RECT"], 1)
-            )
-            if "VERSION_TEXT_RECT" in elements:
-                expected["version"] = elements["VERSION_TEXT_RECT"]["asset"]
+        expected = {"overlay": elements["INFORMATION_OVERLAY_RECT"]["asset"]}
     except (KeyError, TypeError) as exc:
         raise ValueError("INFORMATION_ASSETS_INVALID") from exc
     if set(assets) != set(expected):
@@ -138,7 +132,6 @@ def verify_master(product_dir: Path) -> dict:
         "layout": reusable / "layout.json",
         "background": reusable / "ORIGINAL_MASTER_BACKGROUND.png",
         "product": reusable / "ORIGINAL_MASTER_PRODUCT.png",
-        "shadow": reusable / "ORIGINAL_MASTER_SHADOW.png",
         "final": product_dir / "output" / "ORIGINAL_MASTER_FINAL.png",
     }
     for label, expected_path in expected.items():
@@ -153,20 +146,10 @@ def verify_master(product_dir: Path) -> dict:
         if sha256_file(path) != expected_hash:
             raise ValueError(f"MANIFEST_HASH_MISMATCH: {label}")
 
-    if manifest.get("raster") is None:
-        raster = require_three_four_raster(expected["background"], "MASTER_BACKGROUND")
-        raster_contract = {
-            "width": int(raster["width"]),
-            "height": int(raster["height"]),
-            "ratio": "3:4",
-        }
-        manifest = dict(manifest)
-        manifest["raster"] = raster_contract
-    else:
-        raster_contract = normalize_raster_contract(manifest["raster"], "MASTER_RASTER")
-        manifest = dict(manifest)
-        manifest["raster"] = raster_contract
+    raster_contract = normalize_raster_contract(manifest.get("raster"), "MASTER_RASTER")
+    manifest = dict(manifest)
+    manifest["raster"] = raster_contract
 
-    for label in ("background", "product", "shadow", "final"):
+    for label in ("background", "product", "final"):
         require_matching_raster(expected[label], raster_contract, f"MASTER_{label.upper()}")
     return manifest

@@ -17,8 +17,8 @@ from artifact_flow import bind_candidate, create_preview, create_sku
 from common import atomic_write, sha256_file, verify_information_assets, verify_master
 from compose_image import fit_product_in_box
 from measure_text import (FONT_DEFAULT, fit_title, load_features, load_font,
-                          prepare_layout, render_text_mask, text_width, configuration_overlay)
-from scene_prompt import build_prompt, image_prompt, information_safe_zone_block
+                          prepare_layout, text_width, configuration_overlay)
+from scene_prompt import build_prompt, information_safe_zone_block
 
 
 class MetaLayoutTests(unittest.TestCase):
@@ -142,6 +142,7 @@ class MetaLayoutTests(unittest.TestCase):
 
     def test_features_and_information_regions(self):
         layout = prepare_layout(self.args(title="Фитнес-браслет Xiaomi Smart Band 10"))
+        self.assertEqual(layout["style"], "meta")
         self.assertNotIn("CONFIGURATION_RECT", layout["elements"])
         self.assertAlmostEqual(layout["elements"]["PRODUCT_RECT"]["y"], 308/1024)
         self.assertEqual(len(layout["features"]), 3)
@@ -269,22 +270,57 @@ class MetaLayoutTests(unittest.TestCase):
             self.assertEqual(sha256_file(product_dir/path), digest)
         verify_master(product_dir)
 
-    def test_existing_legacy_layout_still_composites(self):
-        product_dir = self.root/"legacy"
+    def test_non_meta_layout_rejected_without_touching_files(self):
+        product_dir = self.root/"old-product"
         reusable = product_dir/"reusable"
         reusable.mkdir(parents=True)
-        (product_dir/"output").mkdir()
-        Image.new("RGBA", (40,40), "red").save(reusable/"logo.png")
-        render_text_mask(load_font(FONT_DEFAULT, 24, 700), "Legacy").save(reusable/"title.png")
-        layout = {"product_directory":str(product_dir),"canvas":{"ratio":"3:4"},
-                  "product_reference":{"sha256":sha256_file(self.product)},
-                  "elements":{"LOGO_RECT":{"x":.05,"y":.05,"w":.1,"h":.075,"asset":"logo.png"},
-                              "TITLE_LINE_RECT":[{"x":.05,"y":.18,"w":.3,"h":.04,"asset":"title.png"}]},
-                  "information_assets":{k:{"path":p,"sha256":sha256_file(reusable/p)} for k,p in [("logo","logo.png"),("title_1","title.png")]}}
-        atomic_write(reusable/"layout.json",layout,new=True)
-        self.quiet(create_preview,product_dir=str(product_dir),candidate_id="old",product=str(self.product),generated_background=str(ROOT/"assets/meta-clear/background.png"))
-        self.assertTrue((product_dir/"master-candidate-old-preview.png").is_file())
-        self.assertIn("Material Design 3", image_prompt(layout))
+        layout_path = reusable/"layout.json"
+        atomic_write(layout_path, {"product_directory":str(product_dir)}, new=True)
+        expected = layout_path.read_bytes()
+        with self.assertRaisesRegex(ValueError, "UNSUPPORTED_LAYOUT_STYLE"):
+            self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a",
+                       product=str(self.product), generated_background=None)
+        with self.assertRaisesRegex(ValueError, "UNSUPPORTED_LAYOUT_STYLE"):
+            self.quiet(build_prompt, layout=str(layout_path), mode="MASTER", master=None,
+                       redo=True, additional_prompt="Keep it light")
+        self.assertEqual(layout_path.read_bytes(), expected)
+        self.assertEqual(set(product_dir.rglob("*")), {reusable, layout_path})
+
+    def test_existing_meta_master_reuses_product_without_shadow(self):
+        layout = prepare_layout(self.args(configuration="8/256 ГБ"))
+        product_dir = Path(layout["product_directory"])
+        layout["style"] = "meta-clear-a"
+        atomic_write(product_dir/"reusable/layout.json", layout)
+        self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a",
+                   product=str(self.product), generated_background=None)
+        self.quiet(bind_candidate, product_dir=str(product_dir), candidate_id="a")
+        reusable = product_dir/"reusable"
+        master = verify_master(product_dir)
+        self.assertNotIn("shadow", master["files"])
+        # Earlier Meta manifests included an unused blank shadow entry.
+        master["files"]["shadow"] = {"path":"reusable/ORIGINAL_MASTER_SHADOW.png", "sha256":"unused"}
+        atomic_write(reusable/"master.json", master)
+        master_hash = sha256_file(reusable/"master.json")
+        args = dict(product_dir=str(product_dir), product=None, generated_background=None,
+                    configuration=None, redo=False, target=None)
+        self.quiet(create_sku, **args)
+        final = product_dir/"output/SKU_VARIANT-A.png"
+        self.assertEqual(sha256_file(final), sha256_file(product_dir/"output/ORIGINAL_MASTER_FINAL.png"))
+        self.quiet(create_sku, **(args | {"redo":True}))
+        self.assertEqual(sha256_file(final), sha256_file(product_dir/"output/ORIGINAL_MASTER_FINAL.png"))
+        self.assertEqual(sha256_file(reusable/"master.json"), master_hash)
+        self.assertFalse(list(product_dir.rglob("*shadow*.png")))
+        prompt_args = dict(layout=str(reusable/"layout.json"), mode="SKU",
+                           master=str(reusable/"master.json"), redo=True, additional_prompt="Keep it light")
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            build_prompt(argparse.Namespace(**prompt_args))
+        self.assertIn("locked master background", output.getvalue())
+        self.assertIn("TOP_INFORMATION", output.getvalue())
+        self.assertIn("BOTTOM_FEATURES", output.getvalue())
+        self.assertIn("Keep it light", output.getvalue())
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            build_prompt(argparse.Namespace(**(prompt_args | {"redo":False, "additional_prompt":None})))
+        self.assertIn("Keep it light", output.getvalue())
 
 
 if __name__ == "__main__":

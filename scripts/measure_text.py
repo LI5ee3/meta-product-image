@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measure and cache the Meta A layout, including three sourced Russian features."""
+"""Measure and cache the Meta layout, including three sourced Russian features."""
 
 import argparse
 import json
@@ -50,15 +50,6 @@ def check_glyph_coverage(font_path: Path, weight: int, *texts: str) -> None:
                      and mask_signature(font, c) == missing})
     if absent:
         raise ValueError(f"GLYPH_MISSING: {''.join(absent)}")
-
-
-def render_text_mask(font: ImageFont.FreeTypeFont, text: str) -> Image.Image:
-    box = font.getbbox(text)
-    mask = Image.new("L", (box[2]-box[0]+4, box[3]-box[1]+4))
-    ImageDraw.Draw(mask).text((2-box[0], 2-box[1]), text, font=font, fill=255)
-    if not mask.getbbox():
-        raise ValueError("TEXT_EMPTY")
-    return mask.crop(mask.getbbox())
 
 
 def image_metadata(path: Path) -> dict:
@@ -172,7 +163,7 @@ def draw_text_line(image, text, x, y, area_width, font, color,
 def configuration_overlay(layout: dict, reusable: Path, text: str) -> Image.Image:
     text = validate_configuration(text)
     rect = layout.get("elements", {}).get("CONFIGURATION_RECT")
-    if layout.get("style") != "meta-clear-a" or not rect:
+    if layout.get("style") not in {"meta", "meta-clear-a"} or not rect:
         raise ValueError("MASTER_CONFIGURATION_MISSING: the master has no configuration line")
     font_path = Path(layout["font"]["path"])
     check_glyph_coverage(font_path, 500, text)
@@ -299,7 +290,7 @@ def prepare_layout(args: argparse.Namespace) -> dict:
         elements["VERSION_TEXT_RECT"] = version_rect
     if configuration_rect:
         elements["CONFIGURATION_RECT"] = configuration_rect
-    report = {"schema":2, "style":"meta-clear-a", "product_directory":str(product_dir),
+    report = {"schema":2, "style":"meta", "product_directory":str(product_dir),
               "canvas":{"width":width,"height":height,"ratio":"3:4","purpose":"logical layout only"},
               "font":{"path":str(font_path),"name":"Rubik Variable","weight":args.font_weight},
               "product_reference":product_meta, "logo":logo_meta, "complete_name":args.complete_name,

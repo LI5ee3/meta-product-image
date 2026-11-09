@@ -87,11 +87,8 @@ def run_composite(
     output: Path,
     output_kind: str,
     product_layer: Path,
-    shadow_mask: Path,
     configuration: str | None = None,
 ) -> None:
-    if product_layer.exists() != shadow_mask.exists():
-        raise ValueError("CACHED_PRODUCT_SHADOW_INCOMPLETE")
     command = [
         str(COMPOSE_SCRIPT),
         "--background", str(background),
@@ -100,7 +97,6 @@ def run_composite(
         "--output", str(output),
         "--output-kind", output_kind,
         "--product-layer", str(product_layer),
-        "--shadow-mask", str(shadow_mask),
     ]
     if product_layer.exists():
         command.append("--reuse-layers")
@@ -132,7 +128,6 @@ def preview_paths(product_dir: Path, candidate_id: str) -> dict[str, Path]:
     return {
         "background": product_dir / f"{prefix}-background.png",
         "product": reusable_dir / f"master-candidate-{candidate_id}-product.png",
-        "shadow": reusable_dir / f"master-candidate-{candidate_id}-shadow.png",
         "final": product_dir / f"{prefix}.png",
         "manifest": product_dir / f"{prefix}.json",
     }
@@ -142,32 +137,27 @@ def create_preview(args: argparse.Namespace) -> None:
     product_dir, layout_path, layout = load_product(args.product_dir)
     candidate_id = safe_component(args.candidate_id, "CANDIDATE_ID")
     paths = preview_paths(product_dir, candidate_id)
-    if any(path.exists() for label, path in paths.items() if label not in {"product", "shadow"}):
+    if any(path.exists() for label, path in paths.items() if label != "product"):
         raise ValueError("PREVIEW_ALREADY_EXISTS")
     ensure_output_allowed(product_dir)
-    layers_existed = paths["product"].exists() and paths["shadow"].exists()
-    created = [path for label, path in paths.items() if label not in {"product", "shadow"}]
+    layers_existed = paths["product"].exists()
+    created = [path for label, path in paths.items() if label != "product"]
     if not layers_existed:
-        created.extend((paths["product"], paths["shadow"]))
+        created.append(paths["product"])
     try:
         product_source = Path(args.product).expanduser().resolve()
         expected_product_hash = layout.get("product_reference", {}).get("sha256")
         if not product_source.is_file() or sha256_file(product_source) != expected_product_hash:
             raise ValueError("MASTER_PRODUCT_REFERENCE_MISMATCH")
-        background = args.generated_background
-        if not background:
-            if layout.get("style") != "meta-clear-a":
-                raise ValueError("LEGACY_BACKGROUND_REQUIRED")
-            background = DEFAULT_BACKGROUND
+        background = args.generated_background or DEFAULT_BACKGROUND
         copy_new(background, paths["background"])
         background_raster = require_three_four_raster(paths["background"], "MASTER_BACKGROUND")
         raster = {"width": int(background_raster["width"]), "height": int(background_raster["height"]), "ratio": "3:4"}
         run_composite(
             paths["background"], product_source, layout_path, paths["final"],
-            "CANDIDATE", paths["product"], paths["shadow"],
+            "CANDIDATE", paths["product"],
         )
         require_matching_raster(paths["product"], raster, "MASTER_PRODUCT_LAYER")
-        require_matching_raster(paths["shadow"], raster, "MASTER_SHADOW")
         require_matching_raster(paths["final"], raster, "MASTER_FINAL")
         manifest = {
             "schema": 1,
@@ -191,7 +181,7 @@ def load_preview(product_dir: Path, candidate_id: str) -> tuple[dict, dict[str, 
     if manifest.get("kind") != "MASTER_CANDIDATE_PREVIEW" or manifest.get("candidate_id") != candidate_id:
         raise ValueError("PREVIEW_MANIFEST_INVALID")
     raster = normalize_raster_contract(manifest.get("raster"), "PREVIEW_RASTER")
-    for label in ("background", "product", "shadow", "final"):
+    for label in ("background", "product", "final"):
         require_matching_raster(paths[label], raster, f"PREVIEW_{label.upper()}")
     for label in ("background", "final"):
         expected_hash = manifest.get(f"{label}_sha256")
@@ -208,7 +198,7 @@ def discard_preview(args: argparse.Namespace) -> None:
     paths = preview_paths(product_dir, candidate_id)
     if not any(path.exists() for path in paths.values()):
         raise ValueError("PREVIEW_MISSING")
-    cleanup([path for label, path in paths.items() if label not in {"product", "shadow"}])
+    cleanup([path for label, path in paths.items() if label != "product"])
     json.dump({"discarded": True, "candidate_id": candidate_id}, sys.stdout, ensure_ascii=False, indent=2)
     print()
 
@@ -225,7 +215,6 @@ def bind_candidate(args: argparse.Namespace) -> None:
     targets = {
         "background": reusable_dir / "ORIGINAL_MASTER_BACKGROUND.png",
         "product": reusable_dir / "ORIGINAL_MASTER_PRODUCT.png",
-        "shadow": reusable_dir / "ORIGINAL_MASTER_SHADOW.png",
         "final": product_dir / "output" / "ORIGINAL_MASTER_FINAL.png",
         "manifest": reusable_dir / "master.json",
     }
@@ -233,7 +222,7 @@ def bind_candidate(args: argparse.Namespace) -> None:
         raise ValueError("MASTER_ALREADY_EXISTS")
     created = list(targets.values())
     try:
-        for label in ("background", "product", "shadow", "final"):
+        for label in ("background", "product", "final"):
             copy_new(preview_files[label], targets[label])
             require_matching_raster(targets[label], raster, f"MASTER_{label.upper()}")
         master = {
@@ -244,7 +233,6 @@ def bind_candidate(args: argparse.Namespace) -> None:
                 "layout": relative_entry(layout_path, product_dir),
                 "background": relative_entry(targets["background"], product_dir),
                 "product": relative_entry(targets["product"], product_dir),
-                "shadow": relative_entry(targets["shadow"], product_dir),
                 "final": relative_entry(targets["final"], product_dir),
             },
             "raster": raster,
@@ -264,7 +252,6 @@ def sku_preview_paths(product_dir: Path, sku_label: str) -> dict[str, Path]:
     return {
         "background": product_dir / f"{prefix}-background.png",
         "product": reusable_dir / f"{sku_label}-product.png",
-        "shadow": reusable_dir / f"{sku_label}-shadow.png",
         "layers": reusable_dir / f"{sku_label}-layers.json",
         "final": product_dir / f"{prefix}.png",
         "manifest": product_dir / f"{prefix}.json",
@@ -334,11 +321,11 @@ def create_sku(args: argparse.Namespace) -> None:
             raise ValueError("MASTER_CONFIGURATION_MISSING")
     transient = ["final"] if reuse_background else ["background", "final"]
     cleanup([paths[label] for label in transient])
-    layers_exist = paths["product"].exists() and paths["shadow"].exists()
+    layers_exist = paths["product"].exists()
     if layers_exist:
         layers = read_json(paths["layers"])
-    elif any(paths[label].exists() for label in ("product", "shadow", "layers")):
-        raise ValueError("CACHED_PRODUCT_SHADOW_INCOMPLETE")
+    elif paths["layers"].exists():
+        raise ValueError("CACHED_PRODUCT_LAYER_INCOMPLETE")
     if args.product:
         product_source = Path(args.product).expanduser().resolve()
         product_hash = sha256_file(product_source)
@@ -346,14 +333,14 @@ def create_sku(args: argparse.Namespace) -> None:
             raise ValueError("CACHED_PRODUCT_SOURCE_MISMATCH")
     else:
         if redo and not layers_exist:
-            raise ValueError("CACHED_PRODUCT_SHADOW_INCOMPLETE")
+            raise ValueError("CACHED_PRODUCT_LAYER_INCOMPLETE")
         product_source = product_dir/"reusable"/"ORIGINAL_MASTER_PRODUCT.png"
         product_hash = layers["source_sha256"] if layers_exist else layout["product_reference"]["sha256"]
     created = [paths[label] for label in transient]
     if not paths["manifest"].exists():
         created.append(paths["manifest"])
     if not layers_exist:
-        created.extend(paths[label] for label in ("product", "shadow", "layers"))
+        created.extend(paths[label] for label in ("product", "layers"))
     final_output = product_dir / "output" / f"{sku_label}.png"
     replacement = final_output.with_name(f".{final_output.name}.tmp")
     backup = final_output.with_name(f".{final_output.name}.previous")
@@ -363,14 +350,12 @@ def create_sku(args: argparse.Namespace) -> None:
             copy_new(generated_background, paths["background"])
         if not args.product and not layers_exist:
             copy_new(product_source, paths["product"])
-            copy_new(product_dir/"reusable"/"ORIGINAL_MASTER_SHADOW.png", paths["shadow"])
         run_composite(
             paths["background"], product_source, layout_path, paths["final"],
-            "SKU_PREVIEW", paths["product"], paths["shadow"],
+            "SKU_PREVIEW", paths["product"],
             configuration if configuration != layout.get("configuration") else None,
         )
         require_matching_raster(paths["product"], expected_raster, "SKU_PRODUCT_LAYER")
-        require_matching_raster(paths["shadow"], expected_raster, "SKU_SHADOW")
         if not layers_exist:
             atomic_write(paths["layers"], {"source_sha256": product_hash}, new=True)
         require_matching_raster(paths["final"], expected_raster, "SKU_FINAL")
@@ -378,7 +363,7 @@ def create_sku(args: argparse.Namespace) -> None:
             "kind": "SKU_VARIANT",
             "sku_label": sku_label,
             "configuration": configuration,
-            "files": {label: relative_entry(paths[label], product_dir) for label in ("background", "product", "shadow", "final")},
+            "files": {label: relative_entry(paths[label], product_dir) for label in ("background", "product", "final")},
             "raster": expected_raster,
         }
         if final_output.exists() and not redo:
@@ -406,7 +391,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
     preview = subparsers.add_parser("preview")
-    preview.add_argument("--generated-background", help="defaults to the approved A background for new layouts")
+    preview.add_argument("--generated-background", help="defaults to the approved Meta background for new layouts")
     preview.add_argument("--product", required=True)
     preview.add_argument("--product-dir", required=True)
     preview.add_argument("--candidate-id", required=True)

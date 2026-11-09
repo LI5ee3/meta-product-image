@@ -1,4 +1,4 @@
 interface:
-  display_name: "Meta A Product Image"
-  short_description: "A 版主图：自动换行、三俄语卖点与颜色/配置 SKU 复用"
-  default_prompt: "使用 $meta-product-image，新建母版仅从用户指定的官网网址整理三个俄语卖点；未指定网址则立即停止并提醒，不得自行寻找。以 A「Meta 清透层叠」创建主图预览，自动适配产品比例和长名称；已锁定母版支持颜色与内存配置复用，只换配置时仅更新配置行，无需重走完整流程"
+  display_name: "Meta Product Image"
+  short_description: "Meta 主图：自动换行、三俄语卖点与颜色/配置 SKU 复用"
+  default_prompt: "使用 $meta-product-image，新建母版仅从用户指定的官网网址整理三个俄语卖点；未指定网址则立即停止并提醒，不得自行寻找。以「Meta 清透层叠」创建主图预览，自动适配产品比例和长名称；已锁定母版支持颜色与内存配置复用，只换配置时仅更新配置行，无需重走完整流程"

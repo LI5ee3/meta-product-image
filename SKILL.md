@@ -1,18 +1,18 @@
 ---
 name: meta-product-image
-description: "Create reusable 3:4 Meta Astryx-inspired A product images with exact local product/Logo compositing, automatic two-line titles and three sourced Russian selling points with Lucide icons. Use for product main images, user-locked masters, color SKU variants and redos."
+description: "Create reusable 3:4 Meta Astryx-inspired product images with exact local product/Logo compositing, automatic two-line titles and three sourced Russian selling points with Lucide icons. Use for product main images, user-locked masters, color SKU variants and redos."
 ---
 
-# Meta A Product Image
+# Meta Product Image
 
-Use the user-approved A “清透层叠” design in [DESIGN.md](DESIGN.md).
+Use the user-approved Meta “清透层叠” design in [DESIGN.md](DESIGN.md).
 Invoke this Skill with $meta-product-image.
 
 ## Default workflow
 
 USER_PROVIDED_URL -> OFFICIAL_FACTS -> MEASURE_ONCE -> LOCAL_PREVIEW -> USER_LOCK -> SKU
 
-Reuse the bundled approved background and local information overlay. The default workflow needs no Image Gen call, palette extraction, browser or HTML renderer.
+Reuse the bundled approved background and local information overlay. The default workflow needs no Image Gen call, browser or HTML renderer.
 Generate a new background only when the user requests one.
 
 ## 1. Inputs and official facts
@@ -64,7 +64,7 @@ Reuse an existing layout. Never remeasure or overwrite a product directory silen
 
     python scripts/artifact_flow.py preview --product "<product.png>" --product-dir "<PRODUCT_DIRECTORY>" --candidate-id a
 
-The default background is assets/meta-clear/background.png. Output uses its actual raster, not a forced logical size. The exact product and Logo remain local. A has no old 50° cast shadow.
+The default background is assets/meta-clear/background.png. Output uses its actual raster, not a forced logical size. The exact product and Logo remain local. The product has no cast shadow.
 Show the completed full-size preview and stop; do not automatically bind it.
 
 Only after the explicit instruction “锁定母版”:
@@ -85,7 +85,7 @@ For a different memory/storage configuration of the same model, supply only the 
 
     python scripts/artifact_flow.py sku --product-dir "<PRODUCT_DIRECTORY>" --configuration "12/512 ГБ"
 
-This reuses the locked background, product layer, title, version, features, layout and raster; only the configuration line is redrawn at its locked position and font size. Do not research facts again, remeasure, generate a background, create another master or request another lock. The existing master must already contain a configuration line; saved A layouts with CONFIGURATION_RECT work without migration. The version and three facts must still apply to the variant.
+This reuses the locked background, product layer, title, version, features, layout and raster; only the configuration line is redrawn at its locked position and font size. Do not research facts again, remeasure, generate a background, create another master or request another lock. The existing master must already contain a configuration line; saved Meta layouts with CONFIGURATION_RECT work without migration. The version and three facts must still apply to the variant.
 
 To change color and configuration together, add --product "<new color.png>". New SKUs with no --configuration inherit the master's configuration. A different model/name or other changes to displayed facts still require a separate master.
 
@@ -105,7 +105,7 @@ Only when requested:
 For a locked SKU use --mode SKU --master "<PRODUCT_DIRECTORY>/reusable/master.json".
 For a redo append --redo and, only when the user supplied extra requirements, --additional-prompt "<request>". Additions accumulate by product.
 
-Pass successful stdout verbatim to Image Gen. For a new A background, pass assets/meta-clear/background.png as the sole referenced_image_paths input; for an SKU use the verified locked ORIGINAL_MASTER_BACKGROUND.png. Inspect an unseen reference first. Omit num_last_images_to_include. Request an opaque background; never send product art, Logo, text or final composites to the model.
+Pass successful stdout verbatim to Image Gen. For a new Meta background, pass assets/meta-clear/background.png as the sole referenced_image_paths input; for an SKU use the verified locked ORIGINAL_MASTER_BACKGROUND.png. Inspect an unseen reference first. Omit num_last_images_to_include. Request an opaque background; never send product art, Logo, text or final composites to the model.
 
 A requested change permits one model call. In functions.exec forward the result with generatedImage(result). Missing/unreadable raster, wrong ratio or SKU size mismatch stops the run; never automatically regenerate or resize it.
 
@@ -117,13 +117,9 @@ For a master redo, discard the previous candidate while keeping reusable product
 
 Then preview with --generated-background "<new background.png>". For SKU use that option on sku --redo. Every SKU background must exactly match the locked master's actual raster; matching only the aspect ratio is insufficient.
 
-## Existing MD3 products
-
-Old saved layouts/masters stay readable with their original placement, colors and shadow. They are not migrated in place. Legacy master previews require an explicit --generated-background.
-
-The legacy prompt and palette scripts remain for background redos of old products, using their existing palette references, current-sku-palette.json and references/image-gen-prompt-legacy-md3.md. New A layouts do not use that palette branch.
-
 ## Files and checks
+
+Only Meta layouts are supported. To remake an old MD3 product, create a new Meta master in a new output root; preserve existing outputs.
 
 Only confirmed ORIGINAL_MASTER_FINAL.png and SKU_VARIANT-*.png belong in output. Cache layout, overlay, bound background and layers in reusable; keep full-size previews outside output. Do not generate production thumbnails.
 
