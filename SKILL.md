@@ -23,14 +23,16 @@ For a new product obtain the authoritative product PNG/WEBP, original Logo, comp
 
 The version example is “Глобальная версия”. Do not infer that inventory is global from the design example.
 
-Read only the product-page URL(s) specified by the user for selling-point research. Never independently search for or select another source page. If the supplied page is inaccessible, not official, mismatches the model, or lacks enough reliable facts, stop and ask the user to supply a suitable official URL; do not find a replacement yourself. Retain the supplied URL and material conditions. Translate to short Russian headlines and explanations. Battery duration must retain “До” and its mode; distinguish typical capacity, charging limits and camera modes where relevant. Never borrow facts from another model or invent missing specifications.
+Read only the product-page URL(s) specified by the user for selling-point research. Never independently search for or select another source page. If the supplied page is inaccessible, not official, mismatches the model, or lacks enough reliable facts, stop and ask the user to supply a suitable official URL; do not find a replacement yourself. Retain the supplied URL.
+
+Selling-point text must use only the official page's original wording. Copy Russian wording verbatim; for non-Russian pages, only translate the original wording faithfully into Russian. Do not invent, paraphrase, expand or add any selling-point explanation, qualification, caveat or supplementary note, even if it seems reasonable. Preserve qualifications already present in the selected original text; never add your own. Split that wording between headline and label only for layout, without adding content. Never borrow wording or facts from another model.
 
 Write a UTF-8 JSON array of exactly three entries:
 - icon: a bundled Lucide name;
-- headline: one compact line, usually a number or benefit;
-- label: a short Russian explanation, automatically fitted to at most two lines;
+- headline: the headline portion of the official wording or its faithful Russian translation, on one line;
+- label: the remaining portion of that same wording or translation, automatically fitted to at most two lines; never a model-written explanation;
 - source_url: the official HTTPS product-page URL explicitly specified by the user;
-- source_note: optional supporting fact, qualification or verification note.
+- source_note: optional verbatim source excerpt for traceability only; no model-written qualifications or supplementary notes.
 
 See [references/features-example.json](references/features-example.json). Its facts apply only to OnePlus Watch 4, never to another product.
 Bundled icons: watch, activity, battery, camera, monitor, volume-2. Match the icon to the fact. Additional icons must come from official Lucide SVGs with matching transparent PNGs and license; see assets/lucide/README.md. Do not improvise icons or use emoji.
@@ -52,7 +54,7 @@ It measures the actual font, chooses one or two title lines, and keeps model-num
 
 Exact manually requested lines remain supported by --title-lines 1|2, --title-line-1 and optional --title-line-2. Do not combine them with --title.
 
-Three features use equal columns, bounded headline sizes and word-boundary wrapping of explanations to at most two lines. Overlong text fails before saving the layout. At the minimum size, shorten a selling-point phrase without changing its fact or qualification, then rerun; never lower the floor. If supplied version text cannot fit, request a concise version label without changing its meaning.
+Three features use equal columns, bounded headline sizes and word-boundary wrapping of explanations to at most two lines. Overlong text fails before saving the layout. At the minimum size, select a shorter official phrase that preserves its original meaning and qualifications, then rerun; never rewrite the wording or lower the floor. If no suitable official phrase fits, stop and report the layout constraint. If supplied version text cannot fit, request a concise version label without changing its meaning.
 
 The logical canvas is 1536×2048. Products use one centered contain box measured from source Alpha bounds. Preserve proportions and all visible artwork; watches, phones, tablets and different source margins use the same rule.
 

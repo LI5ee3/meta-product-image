@@ -247,11 +247,11 @@ def prepare_layout(args: argparse.Namespace) -> dict:
             headline_font = candidate
             break
     if headline_font is None:
-        raise ValueError("FEATURE_HEADLINE_OVERFLOW: shorten the selling-point headline")
+        raise ValueError("FEATURE_HEADLINE_OVERFLOW: select shorter official wording; do not rewrite or add explanations")
     label_font = load_font(font_path, max(math.ceil(FEATURE_LABEL_MIN_SIZE*scale), round(26*scale*supporting_scale)), 400)
     labels = [wrap_two_lines(f["label"], label_font, (column_width-16)*scale) for f in features]
     if any(lines is None for lines in labels):
-        raise ValueError("FEATURE_LABEL_OVERFLOW: shorten the Russian label to two lines")
+        raise ValueError("FEATURE_LABEL_OVERFLOW: select official wording whose Russian text fits two lines; do not rewrite or add explanations")
     headline_height = headline_font.size/scale*1.12
     label_height = label_font.size/scale*1.18
     panel_height = 20+38+12+headline_height+7+max(map(len, labels))*label_height+20
