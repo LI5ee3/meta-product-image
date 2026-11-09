@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600" role="img" aria-labelledby="title desc">
+  <title id="title">Meta 母版与 SKU 复用示意</title>
+  <desc id="desc">同型号的颜色 SKU 替换产品图，配置 SKU 只更新配置行；背景、名称、版本和三个卖点复用锁定母版。图中为示意，不是实际商品成品。</desc>
+  <defs>
+    <linearGradient id="surface" x2="1" y2="1"><stop stop-color="#F4F8FC"/><stop offset="1" stop-color="#E3EFF8"/></linearGradient>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M1 1 6 4 1 7" fill="none" stroke="#246283" stroke-width="1.5"/></marker>
+    <g id="poster">
+      <rect width="216" height="288" rx="16" fill="#FFFFFF" stroke="#C8DDEB" stroke-width="2"/>
+      <path d="M1 190 Q90 100 215 155 V230 H1Z" fill="#E3EFF8"/>
+      <rect x="24" y="24" width="28" height="8" rx="4" fill="#475B69"/>
+      <rect x="75" y="49" width="66" height="10" rx="5" fill="#182A35"/>
+      <rect x="81" y="72" width="54" height="6" rx="3" fill="#91AFBF"/>
+      <rect x="74" y="99" width="68" height="120" rx="12" fill="currentColor"/>
+      <rect x="97" y="106" width="22" height="4" rx="2" fill="#FFFFFF" opacity=".65"/>
+      <rect x="18" y="236" width="180" height="34" rx="10" fill="#F4F8FC"/>
+      <path d="M40 253 H62 M97 253 H119 M154 253 H176" stroke="#246283" stroke-width="5" stroke-linecap="round"/>
+    </g>
+  </defs>
+  <rect width="1200" height="600" rx="24" fill="url(#surface)"/>
+  <g font-family="Segoe UI, Microsoft YaHei, PingFang SC, sans-serif">
+    <text x="48" y="76" font-size="44" font-weight="600" fill="#182A35">母版锁定后，只改变化的部分</text>
+    <text x="48" y="121" font-size="28" fill="#475B69">同型号复用 · 示意图</text>
+    <text x="96" y="191" font-size="40" font-weight="600" fill="#182A35">已锁定母版</text>
+    <use href="#poster" x="100" y="220" color="#475B69"/>
+    <g fill="#FFFFFF">
+      <rect x="566" y="156" width="586" height="180" rx="20"/>
+      <rect x="566" y="376" width="586" height="180" rx="20"/>
+    </g>
+    <g transform="translate(590 174) scale(.5)"><use href="#poster" color="#77A9CB"/></g>
+    <g transform="translate(590 394) scale(.5)">
+      <use href="#poster" color="#475B69"/>
+      <rect x="77" y="68" width="62" height="14" rx="4" fill="#246283"/>
+    </g>
+    <g fill="#182A35" font-size="44" font-weight="600">
+      <text x="738" y="229">颜色 SKU</text><text x="738" y="449">配置 SKU</text>
+    </g>
+    <g fill="#475B69" font-size="36">
+      <text x="738" y="286">替换产品图</text><text x="738" y="506">只更新配置行</text>
+    </g>
+  </g>
+  <g fill="none" stroke="#246283" stroke-width="3" marker-end="url(#arrow)">
+    <path d="M334 364 H454 V246 H552"/><path d="M454 364 V466 H552"/>
+  </g>
+  <circle cx="454" cy="364" r="6" fill="#246283"/>
+</svg>

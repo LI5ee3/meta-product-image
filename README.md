@@ -1,4 +1,4 @@
-# Meta Product Image
+# ✨ Meta Product Image
 
 **从产品素材到 3:4 电商主图，一次锁定母版，复用颜色与内存配置。**
 
@@ -10,7 +10,11 @@
 
 <p align="center"><em>Meta 设计样板 · 具体版本与卖点以实际商品及用户指定的官网资料为准</em></p>
 
-## 从素材到成品
+## 🧩 从素材到成品
+
+<p align="center">
+  <img src="assets/readme/workflow.svg" width="100%" alt="准备产品图、Logo 和指定官网链接，核实三个俄语卖点并本地排版预览，由用户明确锁定母版，再生成 SKU">
+</p>
 
 **指定官网 → 整理三个俄语卖点 → 自动排版 → 预览 → 锁定母版 → 生成 SKU**
 
@@ -19,7 +23,7 @@
 - **卖点有出处。** 只从用户指定的精确型号官网页面整理三条事实，保留重要限定条件，搭配 Lucide 图标。
 - **复用已确认设计。** 默认使用内置背景与缓存信息层；换颜色复用布局，换内存只更新配置行。仅在要求换背景时调用生图。
 
-## 开始使用
+## 🚀 开始使用
 
 将本项目作为 Skill 安装到支持本地 Skill 的 Agent 环境，准备产品图和 Logo，然后发送：
 
@@ -42,7 +46,13 @@
 
 选择 Meta 设计方向不等于锁定具体产品母版；只有明确锁定后，预览才成为正式母版。
 
-## 同型号，继续生成 SKU
+## 🎨 同型号，继续生成 SKU
+
+<p align="center">
+  <img src="assets/readme/sku-reuse.svg" width="100%" alt="SKU 复用示意：锁定母版后，颜色 SKU 替换产品图，配置 SKU 只更新配置行">
+</p>
+
+**背景、名称、版本和卖点沿用母版；只修改当前 SKU 需要变化的部分。**
 
 | 需要做什么 | 发送什么 |
 | --- | --- |
@@ -56,7 +66,7 @@
 
 重做 SKU 时，未指定的产品图、配置和背景沿用该 SKU 当前内容。新结果通过检查后才替换原文件，失败保留旧成品，不消耗新序号。
 
-## 本地运行
+## 🛠️ 本地运行
 
 依赖 **Python 和 Pillow**，字体与默认视觉素材由项目提供。默认合成流程无需 Node、浏览器或 SVG 渲染库；读取官网资料由执行 Skill 的 Agent 完成。
 
@@ -66,7 +76,7 @@
 python -m pip install Pillow
 ```
 
-从用户指定的官网核实卖点，准备 `features.json` 后，在项目目录运行：
+从用户指定的官网核实卖点，按[卖点 JSON 示例](references/features-example.json)准备 `features.json` 后，在项目目录运行：
 
 ```sh
 python scripts/measure_text.py --complete-name "产品完整名称" --product-reference "产品.png" --logo "Logo.png" --features "features.json" --output-root "成品"
@@ -101,7 +111,7 @@ python scripts/artifact_flow.py sku --product-dir "成品/产品完整名称" --
 
 </details>
 
-## 文件保存
+## 📁 文件保存
 
 每个完整产品名称使用独立目录：
 
@@ -116,6 +126,6 @@ python scripts/artifact_flow.py sku --product-dir "成品/产品完整名称" --
 
 全尺寸预览放在 `output` 之外。项目仅使用当前 Meta 数据格式，不提供历史格式兼容或迁移。重新设计产品时使用新的输出根目录，保留已有母版与成品。
 
-## 许可
+## 📄 许可
 
 项目采用 [MIT License](LICENSE)。内置 Rubik 字体遵循 [SIL Open Font License](assets/OFL.txt)；产品与 Logo 素材由使用者提供。
