@@ -5,7 +5,7 @@
 为手表、手机和平板制作俄语电商主图的 Skill。采用「Meta 清透层叠」：蓝白曲面背景、清晰的产品展示区，以及三列俄语卖点。产品、Logo 和文字均由本地脚本合成。
 
 <p align="center">
-  <img src="assets/readme/meta-example.png" width="540" alt="Meta 已确认设计样板：OnePlus Watch 4，蓝白曲面背景、居中手表和底部三列俄语卖点">
+  <img src="references/meta-approved.png" width="540" alt="Meta 已确认设计样板：OnePlus Watch 4，蓝白曲面背景、居中手表和底部三列俄语卖点">
 </p>
 
 <p align="center"><em>Meta 设计样板 · 具体版本与卖点以实际商品及用户指定的官网资料为准</em></p>

@@ -40,31 +40,19 @@ def atomic_write(path: Path, data, *, new: bool = False) -> None:
         temporary.unlink(missing_ok=True)
 
 
-def raster_info(path: Path) -> dict[str, int | str]:
+def require_three_four_raster(path: Path, label: str) -> dict[str, int | str]:
     try:
         with Image.open(path) as image:
             image.load()
             width, height = image.size
-            mode = image.mode
     except OSError as exc:
         raise ValueError(f"RASTER_UNREADABLE: {path}: {exc}") from exc
     if width <= 0 or height <= 0:
         raise ValueError(f"RASTER_DIMENSIONS_INVALID: {path}")
-    return {
-        "width": width,
-        "height": height,
-        "ratio": "3:4" if width * 4 == height * 3 else f"{width}:{height}",
-        "mode": mode,
-    }
-
-
-def require_three_four_raster(path: Path, label: str) -> dict[str, int | str]:
-    info = raster_info(path)
-    width = int(info["width"])
-    height = int(info["height"])
     if width * 4 != height * 3:
         raise ValueError(f"{label}_NOT_3_4: got {width}x{height}")
-    return info
+    return {"width": width, "height": height, "ratio": "3:4"}
+
 
 
 def normalize_raster_contract(value, label: str) -> dict[str, int | str]:
@@ -87,10 +75,7 @@ def require_matching_raster(
 ) -> dict[str, int | str]:
     contract = normalize_raster_contract(expected, "EXPECTED_RASTER")
     actual = require_three_four_raster(path, label)
-    if (
-        int(actual["width"]) != int(contract["width"])
-        or int(actual["height"]) != int(contract["height"])
-    ):
+    if actual != contract:
         raise ValueError(
             f"{label}_RASTER_MISMATCH: expected "
             f"{contract['width']}x{contract['height']}, got "
@@ -103,23 +88,33 @@ def verify_information_assets(layout: dict, reusable_dir: Path) -> None:
     if layout.get("style") != "meta":
         raise ValueError("UNSUPPORTED_LAYOUT_STYLE: create a Meta master in a new output root")
     try:
-        elements = layout["elements"]
+        name = layout["elements"]["INFORMATION_OVERLAY_RECT"]["asset"]
         assets = layout["information_assets"]
-        expected = {"overlay": elements["INFORMATION_OVERLAY_RECT"]["asset"]}
     except (KeyError, TypeError) as exc:
         raise ValueError("INFORMATION_ASSETS_INVALID") from exc
-    if set(assets) != set(expected):
+    if set(assets) != {"overlay"}:
         raise ValueError("INFORMATION_ASSET_SET_MISMATCH")
-    for label, name in expected.items():
-        try:
-            entry = assets[label]
-            path = (reusable_dir / entry["path"]).resolve()
-        except (KeyError, TypeError) as exc:
-            raise ValueError(f"INFORMATION_ASSET_INVALID: {label}") from exc
-        if path.parent != reusable_dir.resolve() or path != (reusable_dir / name).resolve() or not path.is_file():
-            raise ValueError(f"INFORMATION_ASSET_PATH_MISMATCH: {label}")
-        if sha256_file(path) != entry.get("sha256"):
-            raise ValueError(f"INFORMATION_ASSET_HASH_MISMATCH: {label}")
+    try:
+        entry = assets["overlay"]
+        path = (reusable_dir / entry["path"]).resolve()
+    except (KeyError, TypeError) as exc:
+        raise ValueError("INFORMATION_ASSET_INVALID: overlay") from exc
+    if path.parent != reusable_dir.resolve() or path != (reusable_dir / name).resolve() or not path.is_file():
+        raise ValueError("INFORMATION_ASSET_PATH_MISMATCH: overlay")
+    if sha256_file(path) != entry.get("sha256"):
+        raise ValueError("INFORMATION_ASSET_HASH_MISMATCH: overlay")
+
+
+def load_layout(path: Path) -> tuple[dict, Path]:
+    path = path.expanduser().resolve()
+    if path.name != "layout.json" or path.parent.name != "reusable":
+        raise ValueError("LAYOUT_PATH_INVALID: expected <product>/reusable/layout.json")
+    layout = read_json(path)
+    product_dir = path.parent.parent
+    if layout.get("product_directory") != str(product_dir):
+        raise ValueError("PRODUCT_DIRECTORY_MISMATCH")
+    verify_information_assets(layout, path.parent)
+    return layout, product_dir
 
 
 def verify_master(product_dir: Path) -> dict:
@@ -148,7 +143,6 @@ def verify_master(product_dir: Path) -> dict:
             raise ValueError(f"MANIFEST_HASH_MISMATCH: {label}")
 
     raster_contract = normalize_raster_contract(manifest.get("raster"), "MASTER_RASTER")
-    manifest = dict(manifest)
     manifest["raster"] = raster_contract
 
     for label in ("background", "product", "final"):

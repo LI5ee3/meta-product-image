@@ -5,27 +5,26 @@ import argparse
 import json
 import re
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
-COMPOSE_SCRIPT = SCRIPTS_DIR / "compose_image.py"
 DEFAULT_BACKGROUND = SCRIPTS_DIR.parent / "assets" / "meta-clear" / "background.png"
 SKU_TARGET_PATTERN = re.compile(r"SKU_VARIANT-([A-Z]+)")
 
 
 from common import (
     atomic_write,
+    load_layout,
     normalize_raster_contract,
     read_json,
     require_matching_raster,
     require_three_four_raster,
     sha256_file,
-    verify_information_assets,
     verify_master,
 )
+from compose_image import compose
 from measure_text import validate_configuration
 
 
@@ -42,10 +41,7 @@ def load_product(product_dir_arg: str) -> tuple[Path, Path, dict]:
     layout_path = reusable_dir / "layout.json"
     if not product_dir.is_dir():
         raise ValueError(f"PRODUCT_DIRECTORY_MISSING: {product_dir}")
-    layout = read_json(layout_path)
-    if layout.get("product_directory") != str(product_dir):
-        raise ValueError("PRODUCT_DIRECTORY_MISMATCH")
-    verify_information_assets(layout, reusable_dir)
+    layout, product_dir = load_layout(layout_path)
     output_dir = product_dir / "output"
     output_dir.mkdir(exist_ok=True)
     return product_dir, layout_path, layout
@@ -78,40 +74,6 @@ def copy_new(source_arg: str | Path, destination: Path) -> None:
     if destination.exists():
         raise ValueError(f"REFUSE_OVERWRITE: {destination}")
     shutil.copy2(source, destination)
-
-
-def run_composite(
-    background: Path,
-    product: Path,
-    layout: Path,
-    output: Path,
-    output_kind: str,
-    product_layer: Path,
-    configuration: str | None = None,
-) -> None:
-    command = [
-        str(COMPOSE_SCRIPT),
-        "--background", str(background),
-        "--product", str(product),
-        "--layout", str(layout),
-        "--output", str(output),
-        "--output-kind", output_kind,
-        "--product-layer", str(product_layer),
-    ]
-    if product_layer.exists():
-        command.append("--reuse-layers")
-    if configuration is not None:
-        command.extend(("--configuration", configuration))
-    completed = subprocess.run(
-        [sys.executable, "-X", "utf8", *command],
-        text=True,
-        encoding="utf-8",
-        capture_output=True,
-        check=False,
-    )
-    if completed.returncode:
-        detail = completed.stderr.strip() or completed.stdout.strip()
-        raise ValueError(detail or "COMPOSITE_FAILED")
 
 
 def cleanup(paths: list[Path]) -> None:
@@ -151,11 +113,10 @@ def create_preview(args: argparse.Namespace) -> None:
             raise ValueError("MASTER_PRODUCT_REFERENCE_MISMATCH")
         background = args.generated_background or DEFAULT_BACKGROUND
         copy_new(background, paths["background"])
-        background_raster = require_three_four_raster(paths["background"], "MASTER_BACKGROUND")
-        raster = {"width": int(background_raster["width"]), "height": int(background_raster["height"]), "ratio": "3:4"}
-        run_composite(
+        raster = require_three_four_raster(paths["background"], "MASTER_BACKGROUND")
+        compose(
             paths["background"], product_source, layout_path, paths["final"],
-            "CANDIDATE", paths["product"],
+            "CANDIDATE", paths["product"], reuse_layers=layers_existed,
         )
         require_matching_raster(paths["product"], raster, "MASTER_PRODUCT_LAYER")
         require_matching_raster(paths["final"], raster, "MASTER_FINAL")
@@ -187,7 +148,6 @@ def load_preview(product_dir: Path, candidate_id: str) -> tuple[dict, dict[str, 
         expected_hash = manifest.get(f"{label}_sha256")
         if not isinstance(expected_hash, str) or sha256_file(paths[label]) != expected_hash:
             raise ValueError(f"PREVIEW_{label.upper()}_HASH_MISMATCH")
-    manifest = dict(manifest)
     manifest["raster"] = raster
     return manifest, paths
 
@@ -267,15 +227,10 @@ def sku_letters(number: int) -> str:
 
 
 def existing_sku_labels(product_dir: Path) -> list[str]:
-    return sorted((path.stem for path in (product_dir / "output").glob("SKU_VARIANT-*.png") if SKU_TARGET_PATTERN.fullmatch(path.stem)), key=lambda label: (len(SKU_TARGET_PATTERN.fullmatch(label).group(1)), label))
+    labels = (path.stem for path in (product_dir / "output").glob("SKU_VARIANT-*.png")
+              if SKU_TARGET_PATTERN.fullmatch(path.stem))
+    return sorted(labels, key=lambda label: (len(label), label))
 
-
-def next_sku_label(product_dir: Path) -> str:
-    existing = {match.group(1) for path in (product_dir / "output").glob("SKU_VARIANT-*.png") if (match := SKU_TARGET_PATTERN.fullmatch(path.stem))}
-    number = 1
-    while sku_letters(number) in existing:
-        number += 1
-    return f"SKU_VARIANT-{sku_letters(number)}"
 
 
 def resolve_sku_label(product_dir: Path, redo: bool, target: str | None) -> str:
@@ -286,12 +241,15 @@ def resolve_sku_label(product_dir: Path, redo: bool, target: str | None) -> str:
         if not (product_dir / "output" / f"{sku_label}.png").is_file():
             raise ValueError("SKU_REDO_TARGET_MISSING")
         return sku_label
+    existing = existing_sku_labels(product_dir)
     if redo:
-        existing = existing_sku_labels(product_dir)
         if not existing:
             raise ValueError("SKU_REDO_TARGET_MISSING")
         return existing[-1]
-    return next_sku_label(product_dir)
+    number = 1
+    while f"SKU_VARIANT-{sku_letters(number)}" in existing:
+        number += 1
+    return f"SKU_VARIANT-{sku_letters(number)}"
 
 
 def create_sku(args: argparse.Namespace) -> None:
@@ -352,10 +310,11 @@ def create_sku(args: argparse.Namespace) -> None:
             copy_new(generated_background, paths["background"])
         if not args.product and not layers_exist:
             copy_new(product_source, paths["product"])
-        run_composite(
+        compose(
             paths["background"], product_source, layout_path, paths["final"],
             "SKU_PREVIEW", paths["product"],
             configuration if configuration != layout["configuration"] else None,
+            reuse_layers=paths["product"].exists(),
         )
         require_matching_raster(paths["product"], expected_raster, "SKU_PRODUCT_LAYER")
         if not layers_exist:

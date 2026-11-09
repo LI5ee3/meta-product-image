@@ -5,7 +5,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from common import atomic_write, read_json, verify_information_assets, verify_master
+from common import atomic_write, load_layout, read_json, verify_master
 
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
@@ -39,24 +39,6 @@ def information_safe_zone_block(layout: dict) -> str:
     return "\n".join(lines)
 
 
-def load_layout(path: Path) -> tuple[dict, Path]:
-    layout_path = path.expanduser().resolve()
-    if layout_path.name != "layout.json":
-        raise ValueError("LAYOUT_PATH_INVALID")
-    layout = read_json(layout_path)
-    reusable_dir = layout_path.parent
-    if reusable_dir.name != "reusable":
-        raise ValueError("LAYOUT_PATH_INVALID: expected <product>/reusable/layout.json")
-    product_dir = reusable_dir.parent
-    if layout.get("product_directory") != str(product_dir):
-        raise ValueError("PRODUCT_DIRECTORY_MISMATCH")
-    verify_information_assets(layout, reusable_dir)
-    zones = layout.get("clear_zones")
-    if not isinstance(zones, list) or not zones:
-        raise ValueError("CLEAR_ZONES_MISSING")
-    return layout, product_dir
-
-
 def additions_from(path: Path) -> list[str]:
     if not path.exists():
         return []
@@ -66,14 +48,6 @@ def additions_from(path: Path) -> list[str]:
     ):
         raise ValueError("PROMPT_ADDITIONS_INVALID")
     return [entry.strip() for entry in data]
-
-
-def additions_block(entries: list[str]) -> str | None:
-    if not entries:
-        return None
-    lines = ["User-requested prompt additions accumulated for this product:"]
-    lines.extend(f"{index}. {entry}" for index, entry in enumerate(entries, 1))
-    return "\n".join(lines)
 
 
 def build_prompt(args: argparse.Namespace) -> None:
@@ -91,19 +65,21 @@ def build_prompt(args: argparse.Namespace) -> None:
     if addition and not args.redo:
         raise ValueError("ADDITIONAL_PROMPT_REQUIRES_REDO")
 
+    parts = [image_prompt()]
+    if args.mode == "SKU":
+        parts.append("Use the locked master background as the layout and color reference. Preserve its pale blue-white Astryx composition; generate an empty background only.")
+    parts.append(information_safe_zone_block(layout))
+
     additions_path = product_dir / "reusable" / PROMPT_ADDITIONS_NAME
     additions = additions_from(additions_path)
     if addition:
         additions.append(addition)
         atomic_write(additions_path, additions)
 
-    parts = [image_prompt()]
-    if args.mode == "SKU":
-        parts.append("Use the locked master background as the layout and color reference. Preserve its pale blue-white Astryx composition; generate an empty background only.")
-    parts.append(information_safe_zone_block(layout))
-    increment = additions_block(additions)
-    if increment:
-        parts.append(increment)
+    if additions:
+        lines = ["User-requested prompt additions accumulated for this product:"]
+        lines.extend(f"{index}. {entry}" for index, entry in enumerate(additions, 1))
+        parts.append("\n".join(lines))
     sys.stdout.write("\n\n".join(parts))
 
 

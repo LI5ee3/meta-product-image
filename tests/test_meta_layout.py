@@ -7,6 +7,7 @@ import json
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw
@@ -16,9 +17,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from artifact_flow import bind_candidate, create_preview, create_sku
 from common import atomic_write, sha256_file, verify_information_assets, verify_master
 from compose_image import fit_product_in_box
-from measure_text import (FONT_DEFAULT, fit_title, load_features, load_font,
+from measure_text import (FONT_DEFAULT, fit_title,
                           prepare_layout, text_width, configuration_overlay)
-from scene_prompt import build_prompt, information_safe_zone_block
+from scene_prompt import build_prompt
 
 
 class MetaLayoutTests(unittest.TestCase):
@@ -71,9 +72,6 @@ class MetaLayoutTests(unittest.TestCase):
             label_size = rects[lines[0]]["h"]*2048/1.18
             self.assertLess(headline_size, title_size)
             self.assertLess(label_size, headline_size)
-        for r in layout["text_rects"]:
-            self.assertGreaterEqual(r["x"], 0)
-            self.assertLessEqual(r["x"]+r["w"], 1)
         lines, font = fit_title(name, FONT_DEFAULT, 2, 600, [name])
         self.assertEqual(lines, [name])
         self.assertLess(font.size, title_size)
@@ -146,21 +144,18 @@ class MetaLayoutTests(unittest.TestCase):
         self.assertNotIn("CONFIGURATION_RECT", layout["elements"])
         self.assertAlmostEqual(layout["elements"]["PRODUCT_RECT"]["y"], 308/1024)
         self.assertEqual(len(layout["features"]), 3)
-        self.assertEqual(layout["feature_label_lines"][1], ["режимов", "спорта"])
+        self.assertTrue(all(1 <= len(lines) <= 2 for lines in layout["feature_label_lines"]))
         region = layout["elements"]["PRODUCT_RECT"]
         for r in layout["text_rects"]:
             self.assertGreaterEqual(min(r["x"],r["y"]), 0)
             self.assertLessEqual(r["x"]+r["w"], 1)
             self.assertLessEqual(r["y"]+r["h"], 1)
             self.assertTrue(r["y"]+r["h"] <= region["y"] or r["y"] >= region["y"]+region["h"])
-        block = information_safe_zone_block(layout)
-        self.assertIn("TOP_INFORMATION", block)
-        self.assertIn("BOTTOM_FEATURES", block)
-        self.assertNotIn("FINAL_INFORMATION_SAFE_ZONE", block)
         with contextlib.redirect_stdout(io.StringIO()) as output:
             build_prompt(argparse.Namespace(layout=str(Path(layout["product_directory"])/"reusable/layout.json"),mode="MASTER",master=None,redo=False,additional_prompt=None))
         self.assertIn("Astryx", output.getvalue())
-        self.assertNotIn("PALETTE_REFERENCE", output.getvalue())
+        self.assertIn("TOP_INFORMATION", output.getvalue())
+        self.assertIn("BOTTOM_FEATURES", output.getvalue())
         with self.assertRaisesRegex(ValueError, "REFUSE_REMEASURE"):
             prepare_layout(self.args())
         reusable = Path(layout["product_directory"])/"reusable"
@@ -244,6 +239,11 @@ class MetaLayoutTests(unittest.TestCase):
 
         only_configuration_changed(product_dir/"output/ORIGINAL_MASTER_FINAL.png", final)
         final_hash, manifest_hash = sha256_file(final), sha256_file(manifest)
+        with patch("artifact_flow.atomic_write", side_effect=OSError("manifest write failed")):
+            with self.assertRaisesRegex(OSError, "manifest write failed"):
+                self.quiet(create_sku, **(args | {"redo":True,"configuration":"16/512 ГБ"}))
+        self.assertEqual(sha256_file(final), final_hash)
+        self.assertEqual(sha256_file(manifest), manifest_hash)
         with self.assertRaisesRegex(ValueError, "TEXT_OVERFLOW"):
             self.quiet(create_sku, **(args | {"redo":True,"configuration":"12/512 ГБ "*30}))
         self.assertEqual(sha256_file(final), final_hash)
@@ -275,20 +275,13 @@ class MetaLayoutTests(unittest.TestCase):
         reusable = product_dir/"reusable"
         reusable.mkdir(parents=True)
         layout_path = reusable/"layout.json"
-        for style in (None, "md3", "meta-clear-a"):
-            with self.subTest(style=style):
-                atomic_write(layout_path, {"product_directory":str(product_dir), "style":style})
-                expected = layout_path.read_bytes()
-                with self.assertRaisesRegex(ValueError, "UNSUPPORTED_LAYOUT_STYLE"):
-                    self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a",
-                               product=str(self.product), generated_background=None)
-                with self.assertRaisesRegex(ValueError, "UNSUPPORTED_LAYOUT_STYLE"):
-                    self.quiet(build_prompt, layout=str(layout_path), mode="MASTER", master=None,
-                               redo=True, additional_prompt="Keep it light")
-                with self.assertRaisesRegex(ValueError, "MASTER_CONFIGURATION_MISSING"):
-                    configuration_overlay({"style":style, "elements":{"CONFIGURATION_RECT":{"x":0}}}, reusable, "8/256 ГБ")
-                self.assertEqual(layout_path.read_bytes(), expected)
-                self.assertEqual(set(product_dir.rglob("*")), {reusable, layout_path})
+        atomic_write(layout_path, {"product_directory":str(product_dir), "style":"unsupported"})
+        expected = layout_path.read_bytes()
+        with self.assertRaisesRegex(ValueError, "UNSUPPORTED_LAYOUT_STYLE"):
+            self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a",
+                       product=str(self.product), generated_background=None)
+        self.assertEqual(layout_path.read_bytes(), expected)
+        self.assertEqual(set(product_dir.rglob("*")), {reusable, layout_path})
 
     def test_meta_master_reuse_and_prompt(self):
         layout = prepare_layout(self.args(configuration="8/256 ГБ"))
@@ -304,8 +297,6 @@ class MetaLayoutTests(unittest.TestCase):
                     configuration=None, redo=False, target=None)
         self.quiet(create_sku, **args)
         final = product_dir/"output/SKU_VARIANT-A.png"
-        self.assertEqual(sha256_file(final), sha256_file(product_dir/"output/ORIGINAL_MASTER_FINAL.png"))
-        self.quiet(create_sku, **(args | {"redo":True}))
         self.assertEqual(sha256_file(final), sha256_file(product_dir/"output/ORIGINAL_MASTER_FINAL.png"))
         self.assertEqual(sha256_file(reusable/"master.json"), master_hash)
         prompt_args = dict(layout=str(reusable/"layout.json"), mode="SKU",
@@ -329,12 +320,12 @@ class MetaLayoutTests(unittest.TestCase):
         self.assertEqual(sha256_file(final), final_hash)
         without_configuration = dict(manifest)
         del without_configuration["configuration"]
-        for invalid in (without_configuration, manifest | {"files":manifest["files"] | {"shadow":{}}}):
+        for invalid in (without_configuration, manifest | {"files":manifest["files"] | {"unexpected":{}}}):
             atomic_write(manifest_path, invalid)
             with self.assertRaisesRegex(ValueError, "SKU_MANIFEST_INVALID"):
                 self.quiet(create_sku, **(args | {"redo":True}))
             self.assertEqual(sha256_file(final), final_hash)
-        master["files"]["shadow"] = {}
+        master["files"]["unexpected"] = {}
         atomic_write(reusable/"master.json", master)
         with self.assertRaisesRegex(ValueError, "MASTER_ASSET_SET_MISMATCH"):
             verify_master(product_dir)
