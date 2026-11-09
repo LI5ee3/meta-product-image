@@ -27,6 +27,8 @@ Read only the product-page URL(s) specified by the user for selling-point resear
 
 Selling-point text must use only the official page's original wording. Copy Russian wording verbatim; for non-Russian pages, only translate the original wording faithfully into Russian. Do not invent, paraphrase, expand or add any selling-point explanation, qualification, caveat or supplementary note, even if it seems reasonable. Preserve qualifications already present in the selected original text; never add your own. Split that wording between headline and label only for layout, without adding content. Never borrow wording or facts from another model.
 
+Do not include footnote markers in selling-point headlines or labels, including asterisks, superscript footnote numbers, bracketed reference numbers or daggers. Remove such markers even when present in the official source; preserve actual specification numbers and units. Do not append footnote text or explanations to compensate.
+
 Write a UTF-8 JSON array of exactly three entries:
 - icon: a bundled Lucide name;
 - headline: the headline portion of the official wording or its faithful Russian translation, automatically fitted to at most two lines;
