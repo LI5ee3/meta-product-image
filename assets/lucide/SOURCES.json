@@ -28,5 +28,815 @@
     "name": "volume-2",
     "sha": "519e6cbd4d2693a38f7db0e396354cc07b9f4e26",
     "url": "https://github.com/lucide-icons/lucide/blob/main/icons/volume-2.svg"
+  },
+  {
+    "name": "air-vent",
+    "sha": "668a73637d160d5f7253b7df818e2da16b461945",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/air-vent.svg"
+  },
+  {
+    "name": "airplay",
+    "sha": "03ad3669d3a2022e9cbfef2f1dbdcdb982a67e44",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/airplay.svg"
+  },
+  {
+    "name": "alarm-clock",
+    "sha": "0f99686aa9c49e45baf26b417989cb56422e4652",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/alarm-clock.svg"
+  },
+  {
+    "name": "antenna",
+    "sha": "07440a9613e3032b96711d77089dcd5f4f580c87",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/antenna.svg"
+  },
+  {
+    "name": "aperture",
+    "sha": "433b96ed2e8fadb4fd3f2791611aa9c7d159930a",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/aperture.svg"
+  },
+  {
+    "name": "audio-lines",
+    "sha": "bb80d6e56f9bcf32695ee6eca79a870b8fea5e0c",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/audio-lines.svg"
+  },
+  {
+    "name": "audio-waveform",
+    "sha": "6302ea8d9c39cce003ae33818568e1c2b0a1dbf3",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/audio-waveform.svg"
+  },
+  {
+    "name": "battery-charging",
+    "sha": "8eba9920c5950e690d672920080f75fa35cc4ff3",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/battery-charging.svg"
+  },
+  {
+    "name": "battery-full",
+    "sha": "ab71ee324b6c7558fac8bc77c9da267986c7164d",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/battery-full.svg"
+  },
+  {
+    "name": "battery-plus",
+    "sha": "e3fdd6600838b5214235259224203d517031a553",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/battery-plus.svg"
+  },
+  {
+    "name": "bed",
+    "sha": "492513b8bb7d4005d0b506f0324d1ef6cb1d6704",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/bed.svg"
+  },
+  {
+    "name": "bell",
+    "sha": "0345ca35bc8cead87cf05857545e24de031e7779",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/bell.svg"
+  },
+  {
+    "name": "biceps-flexed",
+    "sha": "2eb091e47813b2d16dfd369fbaf2800bec28e3bc",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/biceps-flexed.svg"
+  },
+  {
+    "name": "bike",
+    "sha": "403139a8e92019cca4f1bf31fc3f1ca7ce324432",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/bike.svg"
+  },
+  {
+    "name": "blend",
+    "sha": "3ee5832c55a236a22b0be3c7c691785970e32e72",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/blend.svg"
+  },
+  {
+    "name": "blender",
+    "sha": "09ffba92788c2d1d71c0bafb8947ab7b41fe9c5a",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/blender.svg"
+  },
+  {
+    "name": "bluetooth",
+    "sha": "e759115a8d6e832c5b5f550de8a3ae56603003b0",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/bluetooth.svg"
+  },
+  {
+    "name": "bluetooth-connected",
+    "sha": "3e21d4bb106098f4660405d939aeb424ce0a71a9",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/bluetooth-connected.svg"
+  },
+  {
+    "name": "bot",
+    "sha": "1a622f9d3aae90506fabea0f428ac38233864ef0",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/bot.svg"
+  },
+  {
+    "name": "box",
+    "sha": "114e73759ecb7d3480409ab876b600803fc4bdd7",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/box.svg"
+  },
+  {
+    "name": "brain-circuit",
+    "sha": "fb39c7795ca8ca5ae600267efe0afea970832afb",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/brain-circuit.svg"
+  },
+  {
+    "name": "brush-cleaning",
+    "sha": "688852625fe31e5f5c455f5c563636332e225e6c",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/brush-cleaning.svg"
+  },
+  {
+    "name": "cable",
+    "sha": "26742d2c0471d2d27ea7529ab4c5b708654017b4",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/cable.svg"
+  },
+  {
+    "name": "calendar-days",
+    "sha": "78c5420d4c5020d7db7f223495a88ea21fd2562d",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/calendar-days.svg"
+  },
+  {
+    "name": "cast",
+    "sha": "6ebddbe006a12db9c6321ee69b09499556881139",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/cast.svg"
+  },
+  {
+    "name": "cctv",
+    "sha": "3d4df7378a7dfd55bdd16df336b2dbefe15b79ef",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/cctv.svg"
+  },
+  {
+    "name": "circuit-board",
+    "sha": "8245191b5d849193c8ad515ee9d4dffde15b98c0",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/circuit-board.svg"
+  },
+  {
+    "name": "clock",
+    "sha": "b6ae2834e60fc09547007a89067994e8b5ea55b5",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/clock.svg"
+  },
+  {
+    "name": "cloud-download",
+    "sha": "2d5ca18ede8eb84e6f345a7da57622fe37420910",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/cloud-download.svg"
+  },
+  {
+    "name": "coffee",
+    "sha": "52d4da353b4dd0dbe7c6ec8898d3fe7863bf0fca",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/coffee.svg"
+  },
+  {
+    "name": "compass",
+    "sha": "1a4e8c7dc5558c600d69d679d2112db50112e1be",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/compass.svg"
+  },
+  {
+    "name": "computer",
+    "sha": "f86576fb476a8c00e18a7770fb9b919afe4111f5",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/computer.svg"
+  },
+  {
+    "name": "contrast",
+    "sha": "334f528170a2f85c062b799085117e7c42589d51",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/contrast.svg"
+  },
+  {
+    "name": "cooking-pot",
+    "sha": "fe348ef75bdd3bbb65e6d1148fd96c786248e790",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/cooking-pot.svg"
+  },
+  {
+    "name": "cpu",
+    "sha": "0307c0e4ad2406f68158978dd183fd38d7b80dd4",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/cpu.svg"
+  },
+  {
+    "name": "database",
+    "sha": "f95db0e3f40633742b292b2f64f5d9c37e3eb157",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/database.svg"
+  },
+  {
+    "name": "diameter",
+    "sha": "37236c0ce316a8bd96f6ca00768785080174752c",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/diameter.svg"
+  },
+  {
+    "name": "drone",
+    "sha": "74323cfe4196cb91289e625ff8b9943d851f4011",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/drone.svg"
+  },
+  {
+    "name": "droplet",
+    "sha": "36aa334f08b95244ae25b107092bad4c93d0d3ef",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/droplet.svg"
+  },
+  {
+    "name": "droplet-off",
+    "sha": "7672d56e79ebd5107b029a3279ac3787ea44bf98",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/droplet-off.svg"
+  },
+  {
+    "name": "droplets",
+    "sha": "b531e9c63603a18060280836346627d5310603d0",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/droplets.svg"
+  },
+  {
+    "name": "dumbbell",
+    "sha": "4aa46a279c5997cf36026bcdfec2dc441f6d2fd9",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/dumbbell.svg"
+  },
+  {
+    "name": "ear",
+    "sha": "1d2b7fb2d69eb4b0d6ca4f024f50f8ba5294476d",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/ear.svg"
+  },
+  {
+    "name": "earbuds",
+    "sha": "826cecc88f4221760fb1b63ebe89b4741eded473",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/earbuds.svg"
+  },
+  {
+    "name": "ethernet-port",
+    "sha": "c8a39a5933ce68584e4417a305169795b91dd175",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/ethernet-port.svg"
+  },
+  {
+    "name": "expand",
+    "sha": "150c00a18a99a0895f37ed9353894af465b762fd",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/expand.svg"
+  },
+  {
+    "name": "eye",
+    "sha": "e5e78706b2be5dd6510cbcf20f6207486c037c34",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/eye.svg"
+  },
+  {
+    "name": "fan",
+    "sha": "5b1ecb8acc63e45e3197fbbfd13b467ca2b60462",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/fan.svg"
+  },
+  {
+    "name": "feather",
+    "sha": "5e438957c05f6f43fe5fdf0d0702ec7279d2e316",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/feather.svg"
+  },
+  {
+    "name": "film",
+    "sha": "fae756862406a2e36566334e77b77c1fbc4ebb92",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/film.svg"
+  },
+  {
+    "name": "fingerprint-pattern",
+    "sha": "6b9ba80c36a366409811be661850268407a4c3e0",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/fingerprint-pattern.svg"
+  },
+  {
+    "name": "flame",
+    "sha": "9a774916838c22983fc1db6a055612c907c953d5",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/flame.svg"
+  },
+  {
+    "name": "focus",
+    "sha": "c04d45afe02ba1d9b6190099cbf9b6690ee6351a",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/focus.svg"
+  },
+  {
+    "name": "fold-horizontal",
+    "sha": "0f967cfbdb1d1d0dbe44af564e5d583b03ee1c24",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/fold-horizontal.svg"
+  },
+  {
+    "name": "footprints",
+    "sha": "240604f32cfbf2ad6153cbe8c3a31aadb3952ebd",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/footprints.svg"
+  },
+  {
+    "name": "gamepad-2",
+    "sha": "bc7f08c59863d3eb8e48febaf8d17bd30ca41e1b",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/gamepad-2.svg"
+  },
+  {
+    "name": "gauge",
+    "sha": "340b9327e30b8a6f4043349d5c575949c54568a2",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/gauge.svg"
+  },
+  {
+    "name": "gem",
+    "sha": "1b142584c0d2abcb68f86faff6c52d9e9c469dd4",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/gem.svg"
+  },
+  {
+    "name": "hard-drive",
+    "sha": "4a99fab39de0ee52378ed314c415ea2188223768",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/hard-drive.svg"
+  },
+  {
+    "name": "headphones",
+    "sha": "4cee5b50ab8d19e0136b97646db9b017c55775d7",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/headphones.svg"
+  },
+  {
+    "name": "headset",
+    "sha": "72cd078061093cb5ca7e440f99e2396471349bcf",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/headset.svg"
+  },
+  {
+    "name": "heart",
+    "sha": "9e0ba0601acd8d872c1e31ab21bab3bee8f96feb",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/heart.svg"
+  },
+  {
+    "name": "heart-pulse",
+    "sha": "f1e4ec81f808208f9f5f999898aa007401c144b7",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/heart-pulse.svg"
+  },
+  {
+    "name": "house",
+    "sha": "10e4097e290fdb2f1f919b264bf4e3095348de7c",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/house.svg"
+  },
+  {
+    "name": "image",
+    "sha": "3241134c018d44660a5af9453925118d7a95dae5",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/image.svg"
+  },
+  {
+    "name": "images",
+    "sha": "27eeb3e4bcd61663757689f8735251ed1c9abc02",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/images.svg"
+  },
+  {
+    "name": "keyboard",
+    "sha": "254582887503f763af4e284f05bc858464ff664d",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/keyboard.svg"
+  },
+  {
+    "name": "lamp",
+    "sha": "713a3a7f499f9f03b0e7daf477f7611194058249",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/lamp.svg"
+  },
+  {
+    "name": "laptop",
+    "sha": "613afff3caa54ee0be639577fa09add361c777a7",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/laptop.svg"
+  },
+  {
+    "name": "layers",
+    "sha": "a3b69ae319a8d3036bb5b26f92195bfe337e17bf",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/layers.svg"
+  },
+  {
+    "name": "leaf",
+    "sha": "8012589aac0717db8ca46c02ab7b387ddae8040e",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/leaf.svg"
+  },
+  {
+    "name": "lightbulb",
+    "sha": "3f4e40913a27ed3362721dc71aef68be66757b6a",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/lightbulb.svg"
+  },
+  {
+    "name": "lock-keyhole",
+    "sha": "97fcbd189d5f5d855d26bb1698680367cf3d9391",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/lock-keyhole.svg"
+  },
+  {
+    "name": "magnet",
+    "sha": "f666f555b1bb6edd39e396d8fa0264475406f2ef",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/magnet.svg"
+  },
+  {
+    "name": "map-pin",
+    "sha": "5d73fbd48b1e663493efaa4523b6c105f996146b",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/map-pin.svg"
+  },
+  {
+    "name": "maximize",
+    "sha": "f78ca32408d3bfa431f79f9563736d38942f1316",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/maximize.svg"
+  },
+  {
+    "name": "memory-stick",
+    "sha": "b8ed70aa825783b1d599b03d0f0eb1126a426298",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/memory-stick.svg"
+  },
+  {
+    "name": "mic",
+    "sha": "2a1698d75fb786209ce79b44dd050b9e1e33f62a",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/mic.svg"
+  },
+  {
+    "name": "mic-off",
+    "sha": "9fadf25b18d7fe77eb2650c9677c72f0460ef636",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/mic-off.svg"
+  },
+  {
+    "name": "microchip",
+    "sha": "15b695c3cbceb285c20848659456012d283c748d",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/microchip.svg"
+  },
+  {
+    "name": "microwave",
+    "sha": "e9e949680533f4879459d445c03bcc61a6b45e7b",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/microwave.svg"
+  },
+  {
+    "name": "moon",
+    "sha": "3c4bc3110eb5f7d4caababf5da4ad51af1145a5b",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/moon.svg"
+  },
+  {
+    "name": "moon-star",
+    "sha": "1e37e033fb841e9d5decf996df5ceb4f8731cd68",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/moon-star.svg"
+  },
+  {
+    "name": "mountain",
+    "sha": "b6691e73cbf6a941b97938e4fe71019e799f1958",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/mountain.svg"
+  },
+  {
+    "name": "mouse",
+    "sha": "3680ad179ac869d12bb55b7976fc07effb2846da",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/mouse.svg"
+  },
+  {
+    "name": "move-horizontal",
+    "sha": "c60a6911ab788d9fd69347a3732952017466da04",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/move-horizontal.svg"
+  },
+  {
+    "name": "move-vertical",
+    "sha": "4babf17a6136b006e5b1e218a597a56b13e0e2cb",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/move-vertical.svg"
+  },
+  {
+    "name": "navigation",
+    "sha": "b2be022d402bd614342fd0e17e31325b2fbe89e0",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/navigation.svg"
+  },
+  {
+    "name": "network",
+    "sha": "e166b3535ca33f9ceee49d2215dd78374689865e",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/network.svg"
+  },
+  {
+    "name": "nfc",
+    "sha": "6991c01745f672ef72211a5bb7597edbe292fb45",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/nfc.svg"
+  },
+  {
+    "name": "package",
+    "sha": "308b1f48c8849836afd1cb78ab3c10ac7ff4fad4",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/package.svg"
+  },
+  {
+    "name": "palette",
+    "sha": "25fb773a61740a8605325a8be1b9b72813d937a2",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/palette.svg"
+  },
+  {
+    "name": "pc-case",
+    "sha": "287129770f88fa9a211660b0121416cec1b00bd0",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/pc-case.svg"
+  },
+  {
+    "name": "person-standing",
+    "sha": "2af3f24113bc6cf1ede013e3695070869579f969",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/person-standing.svg"
+  },
+  {
+    "name": "phone",
+    "sha": "dc81f59b5ce3d1c29ffdc9379511a5071b06a4db",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/phone.svg"
+  },
+  {
+    "name": "phone-call",
+    "sha": "0ac9c808a194dcbc51e064d90bc501ff6e31265b",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/phone-call.svg"
+  },
+  {
+    "name": "plug",
+    "sha": "f28b6f0abef77a6e843dfa99f81731332c72db64",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/plug.svg"
+  },
+  {
+    "name": "plug-zap",
+    "sha": "6376dc020bb14eeb2a498abd35504421671fc8fa",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/plug-zap.svg"
+  },
+  {
+    "name": "power",
+    "sha": "bacd9d5337b68211662eef2b22733dc7b99d663e",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/power.svg"
+  },
+  {
+    "name": "printer",
+    "sha": "dfa0a608eb1c3a2d45d3baf5d665bbec20f1ed55",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/printer.svg"
+  },
+  {
+    "name": "projector",
+    "sha": "358aeee2daee17e4358c828015dbb43a0397695c",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/projector.svg"
+  },
+  {
+    "name": "qr-code",
+    "sha": "17ca38ebe4dc47f5a03b9ac7437d0344bc7909fc",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/qr-code.svg"
+  },
+  {
+    "name": "radio",
+    "sha": "b59855c411113d66f90dbd96a7ad5f8d8c1365b7",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/radio.svg"
+  },
+  {
+    "name": "radio-tower",
+    "sha": "ed2a2dfef5477a4a5b0ddea2919950d2ebed4490",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/radio-tower.svg"
+  },
+  {
+    "name": "ratio",
+    "sha": "0bbc7d08777321d2940d58ac2833eed07c3dc99c",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/ratio.svg"
+  },
+  {
+    "name": "recycle",
+    "sha": "bd207b304d8177459b43b6e164eb90741c82ea67",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/recycle.svg"
+  },
+  {
+    "name": "refrigerator",
+    "sha": "4884513a3d9a4fe979c541b59705e9a3f0f58bda",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/refrigerator.svg"
+  },
+  {
+    "name": "robot-vacuum",
+    "sha": "b266516d37c8c4696d967da52f4bd18187ffff75",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/robot-vacuum.svg"
+  },
+  {
+    "name": "rocket",
+    "sha": "6c006f11b49bf5e1ae3035303b3b1fef7cf609af",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/rocket.svg"
+  },
+  {
+    "name": "rotate-3d",
+    "sha": "afb4d999ab58460eacd87d6d4a76e841f51ab91e",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/rotate-3d.svg"
+  },
+  {
+    "name": "route",
+    "sha": "12f7088149e34e9fd9e6dc0504eff800b9aa1235",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/route.svg"
+  },
+  {
+    "name": "router",
+    "sha": "b171df215596ac33e41545838e121dca77827ffc",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/router.svg"
+  },
+  {
+    "name": "ruler",
+    "sha": "1eb52e3c528c3fd9cc2f785558c8e359744e2dd0",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/ruler.svg"
+  },
+  {
+    "name": "ruler-dimension-line",
+    "sha": "3fd9be4ebc5915c8d8015e397ba597b7f926a092",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/ruler-dimension-line.svg"
+  },
+  {
+    "name": "satellite",
+    "sha": "66cc4d9bf995fae637eec39988ab4686d704b88c",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/satellite.svg"
+  },
+  {
+    "name": "satellite-dish",
+    "sha": "ef30b7fee5a4d7467a7e5b6df2d21251af4cc0e5",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/satellite-dish.svg"
+  },
+  {
+    "name": "scale",
+    "sha": "4a92a0b9f8730171d734ba3df3f27ce56315892d",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/scale.svg"
+  },
+  {
+    "name": "scan",
+    "sha": "33d067b2a20cfb5c91ac60a9ed0da7a954cdd5f2",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/scan.svg"
+  },
+  {
+    "name": "scan-eye",
+    "sha": "cbe870f8d157beb5662b5f5cd74db10418fdf2e2",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/scan-eye.svg"
+  },
+  {
+    "name": "scan-face",
+    "sha": "d1227a0e327c16da38b72b8c9067b95dcbef72f0",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/scan-face.svg"
+  },
+  {
+    "name": "scan-heart",
+    "sha": "b83c52243f7a514a9e14dd3e7d979dcbee43137f",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/scan-heart.svg"
+  },
+  {
+    "name": "scan-line",
+    "sha": "3e8da093643cb317d181a9975cdb47090f18c259",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/scan-line.svg"
+  },
+  {
+    "name": "server",
+    "sha": "a8b6ad92b3cc90688bfaa4d259dce75b26c81d2e",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/server.svg"
+  },
+  {
+    "name": "settings-2",
+    "sha": "0a9d29d77781e7d2f7f6db6a8fe4371ae6ff4f84",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/settings-2.svg"
+  },
+  {
+    "name": "shield",
+    "sha": "e40d7d2ba8de46aa649c1ed5b1fce7d6ed2939bd",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/shield.svg"
+  },
+  {
+    "name": "shield-check",
+    "sha": "da48f664e51be4ceb800dbe4f6c10c5e7cfa800e",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/shield-check.svg"
+  },
+  {
+    "name": "shield-plus",
+    "sha": "3ced759cd2b9968e21d37dd296d38714c995d877",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/shield-plus.svg"
+  },
+  {
+    "name": "shower-head",
+    "sha": "5c2ccd6e32f25282e23c0ad2805bc1a0092da99d",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/shower-head.svg"
+  },
+  {
+    "name": "signal",
+    "sha": "5e3726e7222daaeeb838c9821bf0cd615e16dcba",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/signal.svg"
+  },
+  {
+    "name": "smartphone",
+    "sha": "fc840174a324d965ad4dd420a1c99530a414c326",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/smartphone.svg"
+  },
+  {
+    "name": "smartphone-charging",
+    "sha": "9f89484918c1ce133ff5a5d331a27dcfc1833cfe",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/smartphone-charging.svg"
+  },
+  {
+    "name": "smartphone-nfc",
+    "sha": "23c63a9db7a16f4a35a7f3e6b138d5571a2762ee",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/smartphone-nfc.svg"
+  },
+  {
+    "name": "snowflake",
+    "sha": "2d3f15f4571a1398b8ceab3b1f5891702be25c68",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/snowflake.svg"
+  },
+  {
+    "name": "solar-panel",
+    "sha": "666bad97b5ebbf0f7ef0484ab58e3602690e6e1c",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/solar-panel.svg"
+  },
+  {
+    "name": "speaker",
+    "sha": "387baab0e8c35241e374df71caf42742e3366a28",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/speaker.svg"
+  },
+  {
+    "name": "spray-can",
+    "sha": "0d0f0c8898d852c4f14dc0e38e1ee0e825c57286",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/spray-can.svg"
+  },
+  {
+    "name": "sun",
+    "sha": "3ecadd68c530e3124e6378f32954c27659b79c11",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/sun.svg"
+  },
+  {
+    "name": "sun-dim",
+    "sha": "2606220350346a5bf63bf4912d14cedc50344fec",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/sun-dim.svg"
+  },
+  {
+    "name": "switch-camera",
+    "sha": "8efaa2c95da03115a530e7d0e68a6ee3b5027fb0",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/switch-camera.svg"
+  },
+  {
+    "name": "tablet",
+    "sha": "93edd3d71a3cf4ebf0851ff87aa3be342e87aea0",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/tablet.svg"
+  },
+  {
+    "name": "target",
+    "sha": "260624a5ee0f349737e6ec1c823996fcad8420f5",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/target.svg"
+  },
+  {
+    "name": "thermometer",
+    "sha": "808334dc99524049a5813e24f9d7b5c6dd56431c",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/thermometer.svg"
+  },
+  {
+    "name": "thermometer-snowflake",
+    "sha": "d55f8371547ff25851497f7812234b51b368a82f",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/thermometer-snowflake.svg"
+  },
+  {
+    "name": "thermometer-sun",
+    "sha": "f014333ed1d3a80ab0b2813ea1daf4e36ecac639",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/thermometer-sun.svg"
+  },
+  {
+    "name": "timer",
+    "sha": "77bade6e355ef5c20893f0e9b718af4e108b6026",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/timer.svg"
+  },
+  {
+    "name": "tv",
+    "sha": "96140a5a4df86a88536cf3918f97cddb7448db13",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/tv.svg"
+  },
+  {
+    "name": "umbrella",
+    "sha": "143280bafd9c077aa741c2b35f7ffd75401e5347",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/umbrella.svg"
+  },
+  {
+    "name": "unfold-horizontal",
+    "sha": "e54e20e70ddee37e0f558269b31a732c26bb5891",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/unfold-horizontal.svg"
+  },
+  {
+    "name": "usb",
+    "sha": "89e40f753685452d4a0375081d60ae35f994eefa",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/usb.svg"
+  },
+  {
+    "name": "usb-c-port",
+    "sha": "f37b38691565fd51af54995e07cad9bf23c95809",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/usb-c-port.svg"
+  },
+  {
+    "name": "utensils",
+    "sha": "ff060490021b49a6b141105e189b66b090dcec8c",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/utensils.svg"
+  },
+  {
+    "name": "vibrate",
+    "sha": "8766039aa9d49db615ecef692a882e24e1f926fd",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/vibrate.svg"
+  },
+  {
+    "name": "video",
+    "sha": "c198f49510f9d0c5af8c5533c32bab607d81abba",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/video.svg"
+  },
+  {
+    "name": "volume-x",
+    "sha": "3e2600946f38313e8cfb617e35bbc3c95159d172",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/volume-x.svg"
+  },
+  {
+    "name": "washing-machine",
+    "sha": "85ce3db60153ed06f96a0d6e496edb9a903578c6",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/washing-machine.svg"
+  },
+  {
+    "name": "webcam",
+    "sha": "f846af37117a22dd477999051bff986eb7f2b65a",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/webcam.svg"
+  },
+  {
+    "name": "weight",
+    "sha": "86a1aff5d1986689860cb6f16ad66e6036a9cb2b",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/weight.svg"
+  },
+  {
+    "name": "wifi",
+    "sha": "e46d6d32cc10ba91fddfe0fe130109fa3a0c44f0",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/wifi.svg"
+  },
+  {
+    "name": "wind",
+    "sha": "a6498753d927337d68a41cdaf7b35f54bb7690e8",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/wind.svg"
+  },
+  {
+    "name": "wrench",
+    "sha": "3624343211c8555480270e5371b65c34d92700c0",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/wrench.svg"
+  },
+  {
+    "name": "zap",
+    "sha": "6dde2a649218cbc21b4ba716a82095022f6876c4",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/zap.svg"
+  },
+  {
+    "name": "zoom-in",
+    "sha": "11173c0e1cefd42bd41d37536a7296245855c437",
+    "url": "https://github.com/lucide-icons/lucide/blob/53fab88ff9d1b48f4704b5b5b560d6b4d560bf4c/icons/zoom-in.svg"
   }
 ]

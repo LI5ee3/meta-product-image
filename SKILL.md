@@ -35,7 +35,7 @@ Write a UTF-8 JSON array of exactly three entries:
 - source_note: optional verbatim source excerpt for traceability only; no model-written qualifications or supplementary notes.
 
 See [references/features-example.json](references/features-example.json). Its facts apply only to OnePlus Watch 4, never to another product.
-Bundled icons: watch, activity, battery, camera, monitor, volume-2. Match the icon to the fact. Additional icons must come from official Lucide SVGs with matching transparent PNGs and license; see assets/lucide/README.md. Do not improvise icons or use emoji.
+After determining the three selling points and before choosing any icons, read the complete bundled icon index in [assets/lucide/README.md](assets/lucide/README.md). Then select the most suitable icon for each selling point from the full index, matching its meaning to the sourced fact; do not limit selection to the icons in the example JSON. Additional icons must come from official Lucide SVGs with matching transparent PNGs and license; see assets/lucide/README.md. Do not improvise icons or use emoji.
 
 Use normal Russian case, decimal commas and consistent units such as мА·ч, Гц and Мп. Use ASCII double quote for inches rather than unsupported U+2033. Do not add unrequested prices or promotional claims.
 
