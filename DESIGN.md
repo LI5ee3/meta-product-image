@@ -42,7 +42,7 @@
 
 - [已确认 Meta 样板](references/meta-approved.png)：OnePlus Watch 4 的选定视觉基准。（用户确认）
 - scripts/measure_text.py：测量名称与三卖点，缓存整张透明信息层。（Agent 推断）
-- scripts/compose_image.py：内部合成模块，按照可见边界适配产品，再合成固定背景和信息层；统一由 artifact_flow.py 调用。（Agent 推断）
+- scripts/compose_image.py：提供素材加载与产品适配，合成函数只叠加已准备好的背景、产品层和信息层；文件命名、缓存选择与保存由 artifact_flow.py 负责。（Agent 推断）
 - scripts/artifact_flow.py：预览、明确锁定、颜色 SKU 与重做的现有入口。（Agent 推断）
 - tests/test_meta_layout.py：比例、文字、卖点、资产校验和流程回归用例。（Agent 推断）
 
@@ -60,6 +60,8 @@
 - 不把选择 Meta 方向当作锁定某款产品母版；只检查本次写入目标，不因输出目录中的无关文件阻断操作，不覆盖原有正式输出。（用户确认）
 
 ## 数据格式
+
+- 布局与必需记录在入口校验一次，素材加载时检查比例与尺寸；忽略无关元数据条目。生成 SKU 不读取导出的母版成品，现有缓存文件名与字段保持不变。（用户确认）
 
 - 完整产品目录支持整体移动或复制，按当前布局文件位置定位素材，不绑定历史绝对路径。重做时明确提供新产品图则更新该 SKU 缓存，失败时保留原成品、缓存和重做记录。（用户确认）
 

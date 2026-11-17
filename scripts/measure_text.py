@@ -25,16 +25,9 @@ FEATURE_LABEL_MIN_SIZE = 22
 CONFIGURATION_MIN_SIZE = 32
 
 
-def load_font(font_path: Path, size: int, weight: int) -> ImageFont.FreeTypeFont:
-    font = ImageFont.truetype(str(font_path), size)
-    try:
-        axes = font.get_variation_axes()
-    except OSError:
-        axes = []
-    if axes:
-        if len(axes) != 1 or not axes[0]["minimum"] <= weight <= axes[0]["maximum"]:
-            raise ValueError("FONT_VARIATION_UNSUPPORTED")
-        font.set_variation_by_axes([weight])
+def load_font(size: int, weight: int) -> ImageFont.FreeTypeFont:
+    font = ImageFont.truetype(str(FONT_DEFAULT), size)
+    font.set_variation_by_axes([weight])
     return font
 
 
@@ -43,11 +36,12 @@ def mask_signature(font: ImageFont.FreeTypeFont, text: str) -> tuple:
     return mask.size, mask.getbbox(), bytes(mask)
 
 
-def check_glyph_coverage(font_path: Path, weight: int, *texts: str) -> None:
-    font = load_font(font_path, 96, weight)
+def check_glyph_coverage(*texts: str) -> None:
+    font = load_font(96, 400)
     missing = mask_signature(font, "\U0010ffff")
-    absent = sorted({c for text in texts for c in text if not c.isspace()
-                     and mask_signature(font, c) == missing})
+    characters = set("".join(texts))
+    absent = sorted(c for c in characters if not c.isspace()
+                    and mask_signature(font, c) == missing)
     if absent:
         raise ValueError(f"GLYPH_MISSING: {''.join(absent)}")
 
@@ -105,13 +99,12 @@ def wrap_two_lines(text: str, font, width: float, tracking: float = 0) -> list[s
     return min(candidates, key=lambda item: item[0])[1] if candidates else None
 
 
-def fit_title(text: str, font_path: Path, scale: float, weight: int,
-              manual_lines: list[str] | None = None):
+def fit_title(text: str, scale: float, manual_lines: list[str] | None = None):
     protected = re.sub(r"(\S+) (\d+[A-Za-z]*)(?= |$)", lambda m: m[1]+"\u00a0"+m[2], text)
     sizes = [max(1, round(size*scale)) for size in (68, 64, 60, 56)]
     sizes.extend(range(sizes[-1]-1, 0, -1))
     for size in sizes:
-        font = load_font(font_path, size, weight)
+        font = load_font(size, TITLE_WEIGHT)
         tracking = -.035*font.size
         lines = manual_lines or wrap_two_lines(protected, font, 672*scale, tracking)
         if lines and all(text_width(font, line, tracking) <= 672*scale for line in lines):
@@ -160,17 +153,14 @@ def draw_text_line(image, text, x, y, area_width, font, color,
     return normalized_rect((left, y, left+length, y+font.size*line_height), *image.size)
 
 
-def configuration_overlay(layout: dict, reusable: Path, text: str) -> Image.Image:
-    text = validate_configuration(text)
+def configuration_overlay(layout: dict, overlay: Image.Image, text: str) -> Image.Image:
     rect = layout.get("elements", {}).get("CONFIGURATION_RECT")
-    if layout.get("style") != "meta" or not rect:
+    if not rect:
         raise ValueError("MASTER_CONFIGURATION_MISSING: the master has no configuration line")
-    font_path = FONT_DEFAULT
-    check_glyph_coverage(font_path, 500, text)
-    with Image.open(reusable/layout["elements"]["INFORMATION_OVERLAY_RECT"]["asset"]) as source:
-        overlay = source.convert("RGBA")
+    check_glyph_coverage(text)
+    overlay = overlay.copy()
     width, height = overlay.size
-    font = load_font(font_path, round(rect["h"]*height/1.2), 500)
+    font = load_font(round(rect["h"]*height/1.2), 500)
     top = rect["y"]*height
     # Clear only this isolated line; keep all other cached pixels intact.
     overlay.paste((0, 0, 0, 0), (0, math.floor(top)-2, width, math.ceil(top+rect["h"]*height)+2))
@@ -202,9 +192,8 @@ def prepare_layout(args: argparse.Namespace) -> dict:
     if configuration is not None:
         configuration = validate_configuration(configuration)
     texts = [title, args.version or "", configuration or "", *[f[k] for f in features for k in ("headline", "label")]]
-    for weight in {400, 500, TITLE_WEIGHT}:
-        check_glyph_coverage(font_path, weight, *texts)
-    title_lines, title_font = fit_title(title, font_path, scale, TITLE_WEIGHT, manual)
+    check_glyph_coverage(*texts)
+    title_lines, title_font = fit_title(title, scale, manual)
     # Supporting text follows the title only until its readability floor.
     supporting_scale = min(1, title_font.size/(56*scale))
     product_meta = image_metadata(Path(args.product_reference).expanduser().resolve())
@@ -226,28 +215,28 @@ def prepare_layout(args: argparse.Namespace) -> dict:
     logo_rect = normalized_rect((*logo_xy, logo_xy[0]+logo.width, logo_xy[1]+logo.height), width, height)
     version_rect = None
     if args.version:
-        version_font = load_font(font_path, max(math.ceil(VERSION_MIN_SIZE*scale), round(34*scale*supporting_scale)), 400)
+        version_font = load_font(max(math.ceil(VERSION_MIN_SIZE*scale), round(34*scale*supporting_scale)), 400)
         version_rect = text_line(args.version, 264, 58, 456, version_font, SECONDARY, "right", 1.2)
     title_rects = [text_line(line, 48, 156+i*title_font.size/scale*1.08, 672,
                              title_font, INK, spacing=-.035) for i, line in enumerate(title_lines)]
     x, y, w, h = PRODUCT_BOX
     configuration_rect = None
     if configuration:
-        configuration_font = load_font(font_path, max(math.ceil(CONFIGURATION_MIN_SIZE*scale), round(36*scale*supporting_scale)), 500)
+        configuration_font = load_font(max(math.ceil(CONFIGURATION_MIN_SIZE*scale), round(36*scale*supporting_scale)), 500)
         configuration_top = 156+len(title_lines)*title_font.size/scale*1.08+12
         configuration_rect = text_line(configuration, 48, configuration_top, 672, configuration_font, INK, line_height=1.2)
         product_top = max(y, configuration_top+configuration_font.size/scale*1.2+20)
         h, y = y+h-product_top, product_top
 
     column_width = 664/3
-    label_font = load_font(font_path, math.ceil(FEATURE_LABEL_MIN_SIZE*scale), 400)
+    label_font = load_font(math.ceil(FEATURE_LABEL_MIN_SIZE*scale), 400)
     labels = [wrap_two_lines(f["label"], label_font, (column_width-16)*scale) for f in features]
     if any(lines is None for lines in labels):
         raise ValueError("FEATURE_LABEL_OVERFLOW: repartition the same official wording before selecting another fact")
     label_height = label_font.size/scale*1.18
     label_area_height = max(map(len, labels))*label_height
     for size in (28, 26):
-        headline_font = load_font(font_path, max(math.ceil(FEATURE_HEADLINE_MIN_SIZE*scale), round(size*scale*supporting_scale)), 500)
+        headline_font = load_font(max(math.ceil(FEATURE_HEADLINE_MIN_SIZE*scale), round(size*scale*supporting_scale)), 500)
         headlines = [wrap_two_lines(f["headline"], headline_font, (column_width-16)*scale,
                                     -.025*headline_font.size) for f in features]
         if any(lines is None for lines in headlines):

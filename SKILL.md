@@ -111,6 +111,6 @@ Use only the current Meta data format. Do not accept historical style identifier
 
 Write confirmed ORIGINAL_MASTER_FINAL.png and SKU_VARIANT-*.png into output. Ignore unrelated user files and check only the current write targets for overwrite conflicts. Resolve the product directory from the current layout.json location so complete product directories can be moved or copied without rewriting cached metadata. Cache layout, overlay, bound background and layers in reusable; keep full-size master previews outside output. SKUs read the bound background directly, without per-SKU copies. Delete temporary SKU preview images after saving the final, but retain SKU_VARIANT-*-preview.json records for redo. A successful redo also removes that SKU's previous redundant background copy. Do not generate production thumbnails.
 
-Check source identity, glyphs, complete outline, title/feature fit, exactly three facts, version, actual raster and output preservation. The user owns master visual acceptance.
+Validate layout and required cached entries once at workflow entry; ignore unrelated metadata entries. Check image dimensions when loading the layers, not by reopening rendered outputs. SKU creation verifies locked source assets without reading the exported master image. Preserve source identity, glyph checks, complete outlines, text fit, exactly three facts, version, locked raster and output protection. The user owns master visual acceptance.
 
     python -B -m unittest discover -s tests -v

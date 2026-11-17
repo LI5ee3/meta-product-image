@@ -49,7 +49,7 @@ class MetaLayoutTests(unittest.TestCase):
     def test_title_wrap_preserves_name_and_model_number(self):
         for name in ("OnePlus Watch 4", "Xiaomi Smart Band 11 Active",
                      "Фитнес-браслет Xiaomi Smart Band 10", "Планшет OnePlus Pad Lite"):
-            lines, font = fit_title(name, FONT_DEFAULT, 2, 600)
+            lines, font = fit_title(name, 2)
             self.assertEqual(" ".join(lines).replace("\u00a0", " "), name)
             self.assertLessEqual(len(lines), 2)
             self.assertGreaterEqual(font.size, 112)
@@ -71,7 +71,7 @@ class MetaLayoutTests(unittest.TestCase):
             label_size = rects[lines[0]]["h"]*2048/1.18
             self.assertLess(headline_size, title_size)
             self.assertLess(label_size, headline_size)
-        lines, font = fit_title(name, FONT_DEFAULT, 2, 600, [name])
+        lines, font = fit_title(name, 2, [name])
         self.assertEqual(lines, [name])
         self.assertLess(font.size, title_size)
         self.assertLessEqual(text_width(font, name, -.035*font.size), 1344)
@@ -183,7 +183,8 @@ class MetaLayoutTests(unittest.TestCase):
             prepare_layout(self.args())
         reusable = Path(layout["product_directory"])/"reusable"
         with self.assertRaisesRegex(ValueError, "MASTER_CONFIGURATION_MISSING"):
-            configuration_overlay(layout, reusable, "12/512 ГБ")
+            configuration_overlay(layout, Image.new("RGBA", (1, 1)), "12/512 ГБ")
+        layout["information_assets"]["note"] = {}
         verify_information_assets(layout, reusable)
         (reusable/"information-overlay.png").write_bytes(b"changed")
         with self.assertRaisesRegex(ValueError, "HASH_MISMATCH"):
@@ -337,15 +338,35 @@ class MetaLayoutTests(unittest.TestCase):
         self.assertEqual(sha256_file(final), final_hash)
         without_configuration = dict(manifest)
         del without_configuration["configuration"]
-        for invalid in (without_configuration, manifest | {"files":manifest["files"] | {"unexpected":{}}}):
+        missing_product = manifest | {"files": {k: v for k, v in manifest["files"].items() if k != "product"}}
+        for invalid in (without_configuration, missing_product):
             atomic_write(manifest_path, invalid)
             with self.assertRaisesRegex(ValueError, "SKU_MANIFEST_INVALID"):
                 self.quiet(create_sku, **(args | {"redo":True}))
             self.assertEqual(sha256_file(final), final_hash)
+        atomic_write(manifest_path, manifest | {"files": manifest["files"] | {"unexpected": {}}})
+        self.quiet(create_sku, **(args | {"redo": True}))
+        self.assertEqual(sha256_file(final), final_hash)
         master["files"]["unexpected"] = {}
+        atomic_write(reusable/"master.json", master)
+        verify_master(product_dir)
+        del master["files"]["product"]
         atomic_write(reusable/"master.json", master)
         with self.assertRaisesRegex(ValueError, "MASTER_ASSET_SET_MISMATCH"):
             verify_master(product_dir)
+
+    def test_sku_uses_locked_assets_without_exported_master(self):
+        layout = prepare_layout(self.args())
+        product_dir = Path(layout["product_directory"])
+        self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a", product=str(self.product))
+        self.quiet(bind_candidate, product_dir=str(product_dir), candidate_id="a")
+        final = product_dir / "output" / "ORIGINAL_MASTER_FINAL.png"
+        expected_hash = sha256_file(final)
+        final.unlink()
+        self.quiet(create_sku, product_dir=str(product_dir), product=None,
+                   configuration=None, redo=False, target=None)
+        self.assertFalse(final.exists())
+        self.assertEqual(sha256_file(product_dir / "output" / "SKU_VARIANT-A.png"), expected_hash)
 
     def test_unrelated_output_files_and_target_protection(self):
         layout = prepare_layout(self.args())

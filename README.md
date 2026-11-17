@@ -99,7 +99,7 @@ python scripts/artifact_flow.py sku --product "另一颜色.png" --product-dir "
 python scripts/artifact_flow.py sku --product-dir "成品/产品完整名称" --configuration "12/512 ГБ"
 ```
 
-脚本检查三条卖点、图标、网址格式、字形和文字尺寸；官网归属、型号及事实真实性由 Agent 核实。完整执行规则见 [SKILL.md](SKILL.md)。
+脚本检查三条卖点、图标、网址格式、字形和文字尺寸；布局在流程入口校验一次，素材在加载时检查尺寸。生成 SKU 复用锁定素材，不读取导出的母版成品。官网归属、型号及事实真实性由 Agent 核实。完整执行规则见 [SKILL.md](SKILL.md)。
 
 <details>
 <summary>排版与尺寸约定</summary>

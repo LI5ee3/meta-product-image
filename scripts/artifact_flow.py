@@ -20,12 +20,13 @@ from common import (
     normalize_raster_contract,
     read_json,
     require_matching_raster,
-    require_three_four_raster,
     sha256_file,
     verify_master,
 )
-from compose_image import compose
-from measure_text import validate_configuration
+from compose_image import (
+    compose, load_background, load_image, load_product_layer, prepare_product_layer,
+)
+from measure_text import configuration_overlay, validate_configuration
 
 
 def safe_component(value: str, label: str) -> str:
@@ -63,6 +64,12 @@ def copy_new(source_arg: str | Path, destination: Path) -> None:
     shutil.copy2(source, destination)
 
 
+def save_new_image(image, path: Path) -> None:
+    # Exclusive creation protects the target without duplicating filename rules.
+    with path.open("xb") as handle:
+        image.save(handle, "PNG")
+
+
 def cleanup(paths: list[Path]) -> None:
     for path in paths:
         if path.is_file():
@@ -81,7 +88,7 @@ def preview_paths(product_dir: Path, candidate_id: str) -> dict[str, Path]:
 
 
 def create_preview(args: argparse.Namespace) -> None:
-    product_dir, layout_path, layout = load_product(args.product_dir)
+    product_dir, _, layout = load_product(args.product_dir)
     candidate_id = safe_component(args.candidate_id, "CANDIDATE_ID")
     paths = preview_paths(product_dir, candidate_id)
     if any(path.exists() for label, path in paths.items() if label != "product"):
@@ -96,13 +103,16 @@ def create_preview(args: argparse.Namespace) -> None:
         if not product_source.is_file() or sha256_file(product_source) != expected_product_hash:
             raise ValueError("MASTER_PRODUCT_REFERENCE_MISMATCH")
         copy_new(DEFAULT_BACKGROUND, paths["background"])
-        raster = require_three_four_raster(paths["background"], "MASTER_BACKGROUND")
-        compose(
-            paths["background"], product_source, layout_path, paths["final"],
-            "CANDIDATE", paths["product"], reuse_layers=layers_existed,
-        )
-        require_matching_raster(paths["product"], raster, "MASTER_PRODUCT_LAYER")
-        require_matching_raster(paths["final"], raster, "MASTER_FINAL")
+        background = load_background(paths["background"])
+        if layers_existed:
+            product_layer = load_product_layer(paths["product"], background.size)
+        else:
+            product_layer = prepare_product_layer(product_source, layout["elements"]["PRODUCT_RECT"], background.size)
+        overlay = load_image(product_dir / "reusable" / layout["elements"]["INFORMATION_OVERLAY_RECT"]["asset"])
+        save_new_image(compose(background, product_layer, overlay), paths["final"])
+        if not layers_existed:
+            save_new_image(product_layer, paths["product"])
+        raster = {"width": background.width, "height": background.height, "ratio": "3:4"}
         manifest = {
             "schema": 1,
             "kind": "MASTER_CANDIDATE_PREVIEW",
@@ -151,7 +161,7 @@ def bind_candidate(args: argparse.Namespace) -> None:
     reusable_dir = product_dir / "reusable"
     candidate_id = safe_component(args.candidate_id, "CANDIDATE_ID")
     preview, preview_files = load_preview(product_dir, candidate_id)
-    raster = normalize_raster_contract(preview.get("raster"), "PREVIEW_RASTER")
+    raster = preview["raster"]
     targets = {
         "background": reusable_dir / "ORIGINAL_MASTER_BACKGROUND.png",
         "product": reusable_dir / "ORIGINAL_MASTER_PRODUCT.png",
@@ -164,7 +174,6 @@ def bind_candidate(args: argparse.Namespace) -> None:
     try:
         for label in ("background", "product", "final"):
             copy_new(preview_files[label], targets[label])
-            require_matching_raster(targets[label], raster, f"MASTER_{label.upper()}")
         master = {
             "schema": 1,
             "state": "BOUND",
@@ -233,22 +242,20 @@ def resolve_sku_label(product_dir: Path, redo: bool, target: str | None) -> str:
 
 
 def create_sku(args: argparse.Namespace) -> None:
-    product_dir, layout_path, layout = load_product(args.product_dir)
+    product_dir, _, layout = load_product(args.product_dir)
     master = verify_master(product_dir)
-    expected_raster = normalize_raster_contract(master.get("raster"), "MASTER_RASTER")
+    expected_raster = master["raster"]
     redo = bool(args.redo)
     sku_label = resolve_sku_label(product_dir, redo, args.target)
     paths = sku_paths(product_dir, sku_label)
     previous = read_json(paths["manifest"]) if redo else {}
-    if redo and (set(previous.get("files", {})) != {"background", "product", "final"} or "configuration" not in previous):
+    if redo and (not {"background", "product", "final"} <= set(previous.get("files", {})) or "configuration" not in previous):
         raise ValueError("SKU_MANIFEST_INVALID")
     configuration = args.configuration
     if configuration is None:
         configuration = previous["configuration"] if redo else layout["configuration"]
     if configuration is not None:
         configuration = validate_configuration(configuration)
-        if not layout.get("elements", {}).get("CONFIGURATION_RECT"):
-            raise ValueError("MASTER_CONFIGURATION_MISSING")
 
     layers_exist = paths["product"].exists()
     if args.product:
@@ -282,24 +289,28 @@ def create_sku(args: argparse.Namespace) -> None:
     backups = {}
     published = []
     try:
-        if update_product and not args.product:
-            copy_new(product_source, product_layer)
-        compose(
-            paths["background"], product_source, layout_path, paths["final"],
-            "SKU_PREVIEW", product_layer,
-            configuration if configuration != layout["configuration"] else None,
-            reuse_layers=not bool(args.product),
-        )
-        require_matching_raster(product_layer, expected_raster, "SKU_PRODUCT_LAYER")
-        require_matching_raster(paths["final"], expected_raster, "SKU_FINAL")
+        background = load_background(paths["background"], expected_raster)
+        if args.product:
+            layer = prepare_product_layer(product_source, layout["elements"]["PRODUCT_RECT"], background.size)
+        else:
+            source = paths["product"] if layers_exist else product_source
+            layer = load_product_layer(source, background.size)
+        overlay = load_image(product_dir / "reusable" / layout["elements"]["INFORMATION_OVERLAY_RECT"]["asset"])
+        if configuration != layout["configuration"]:
+            overlay = configuration_overlay(layout, overlay, configuration)
+        save_new_image(compose(background, layer, overlay), paths["final"])
         if update_product:
+            save_new_image(layer, product_layer)
             atomic_write(staged[paths["layers"]], {"source_sha256": product_hash}, new=True)
         manifest = {
             "kind": "SKU_VARIANT",
             "sku_label": sku_label,
             "configuration": configuration,
             "files": {
-                "background": relative_entry(paths["background"], product_dir),
+                "background": {
+                    "path": paths["background"].relative_to(product_dir).as_posix(),
+                    "sha256": master["files"]["background"]["sha256"],
+                },
                 "product": relative_entry(product_layer, product_dir) | {
                     "path": paths["product"].relative_to(product_dir).as_posix(),
                 },
