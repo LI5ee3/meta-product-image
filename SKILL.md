@@ -102,14 +102,14 @@ Redo the latest SKU:
 
     python scripts/artifact_flow.py sku --product-dir "<PRODUCT_DIRECTORY>" --redo
 
-For an explicitly named SKU add --target SKU_VARIANT-A. On redo, omitted --product and --configuration preserve that SKU's current product and configuration; the locked master background is reused unchanged. Append --configuration "12/512 ГБ" to change only its configuration. Retain source identity when reusing cached layers.
+For an explicitly named SKU add --target SKU_VARIANT-A. On redo, omitted --product and --configuration preserve that SKU's current product and configuration; the locked master background is reused unchanged. Append --configuration "12/512 ГБ" to change only its configuration. A supplied --product rebuilds the product layer and updates its source identity; omitted --product reuses the current cached layer. Failed redos preserve the previous final, product cache and redo record.
 A redo preserves the old final until all checks pass, atomically replaces the same filename and does not consume a sequence label.
 
 ## Files and checks
 
 Use only the current Meta data format. Do not accept historical style identifiers or manifests, or migrate them automatically. Create a new master in a new output root when the format is unsupported; preserve existing outputs.
 
-Only confirmed ORIGINAL_MASTER_FINAL.png and SKU_VARIANT-*.png belong in output. Cache layout, overlay, bound background and layers in reusable; keep full-size master previews outside output. SKUs read the bound background directly, without per-SKU copies. Delete temporary SKU preview images after saving the final, but retain SKU_VARIANT-*-preview.json records for redo. A successful redo also removes that SKU's previous redundant background copy. Do not generate production thumbnails.
+Write confirmed ORIGINAL_MASTER_FINAL.png and SKU_VARIANT-*.png into output. Ignore unrelated user files and check only the current write targets for overwrite conflicts. Resolve the product directory from the current layout.json location so complete product directories can be moved or copied without rewriting cached metadata. Cache layout, overlay, bound background and layers in reusable; keep full-size master previews outside output. SKUs read the bound background directly, without per-SKU copies. Delete temporary SKU preview images after saving the final, but retain SKU_VARIANT-*-preview.json records for redo. A successful redo also removes that SKU's previous redundant background copy. Do not generate production thumbnails.
 
 Check source identity, glyphs, complete outline, title/feature fit, exactly three facts, version, actual raster and output preservation. The user owns master visual acceptance.
 

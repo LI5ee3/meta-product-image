@@ -47,19 +47,6 @@ def load_product(product_dir_arg: str) -> tuple[Path, Path, dict]:
     return product_dir, layout_path, layout
 
 
-def ensure_output_allowed(product_dir: Path) -> None:
-    output_dir = product_dir / "output"
-    for path in output_dir.iterdir():
-        allowed = path.name == "ORIGINAL_MASTER_FINAL.png" or (
-            path.is_file()
-            and path.name.startswith("SKU_VARIANT-")
-            and path.name != "SKU_VARIANT-.png"
-            and path.suffix.lower() == ".png"
-        )
-        if not allowed or not path.is_file():
-            raise ValueError(f"OUTPUT_CONTAINS_FORBIDDEN_FILE: {path.name}")
-
-
 def relative_entry(path: Path, product_dir: Path) -> dict[str, str]:
     return {
         "path": path.relative_to(product_dir).as_posix(),
@@ -99,7 +86,6 @@ def create_preview(args: argparse.Namespace) -> None:
     paths = preview_paths(product_dir, candidate_id)
     if any(path.exists() for label, path in paths.items() if label != "product"):
         raise ValueError("PREVIEW_ALREADY_EXISTS")
-    ensure_output_allowed(product_dir)
     layers_existed = paths["product"].exists()
     created = [path for label, path in paths.items() if label != "product"]
     if not layers_existed:
@@ -164,9 +150,6 @@ def bind_candidate(args: argparse.Namespace) -> None:
     product_dir, layout_path, _ = load_product(args.product_dir)
     reusable_dir = product_dir / "reusable"
     candidate_id = safe_component(args.candidate_id, "CANDIDATE_ID")
-    ensure_output_allowed(product_dir)
-    if any((product_dir / "output").iterdir()):
-        raise ValueError("BIND_REQUIRES_EMPTY_OUTPUT_DIRECTORY")
     preview, preview_files = load_preview(product_dir, candidate_id)
     raster = normalize_raster_contract(preview.get("raster"), "PREVIEW_RASTER")
     targets = {
@@ -251,7 +234,6 @@ def resolve_sku_label(product_dir: Path, redo: bool, target: str | None) -> str:
 
 def create_sku(args: argparse.Namespace) -> None:
     product_dir, layout_path, layout = load_product(args.product_dir)
-    ensure_output_allowed(product_dir)
     master = verify_master(product_dir)
     expected_raster = normalize_raster_contract(master.get("raster"), "MASTER_RASTER")
     redo = bool(args.redo)
@@ -267,68 +249,85 @@ def create_sku(args: argparse.Namespace) -> None:
         configuration = validate_configuration(configuration)
         if not layout.get("elements", {}).get("CONFIGURATION_RECT"):
             raise ValueError("MASTER_CONFIGURATION_MISSING")
-    cleanup([paths["final"]])
+
     layers_exist = paths["product"].exists()
-    if layers_exist:
-        layers = read_json(paths["layers"])
-    elif paths["layers"].exists():
-        raise ValueError("CACHED_PRODUCT_LAYER_INCOMPLETE")
     if args.product:
         product_source = Path(args.product).expanduser().resolve()
         product_hash = sha256_file(product_source)
-        if layers_exist and layers.get("source_sha256") != product_hash:
-            raise ValueError("CACHED_PRODUCT_SOURCE_MISMATCH")
     else:
         if redo and not layers_exist:
             raise ValueError("CACHED_PRODUCT_LAYER_INCOMPLETE")
-        product_source = product_dir/"reusable"/"ORIGINAL_MASTER_PRODUCT.png"
-        product_hash = layers["source_sha256"] if layers_exist else layout["product_reference"]["sha256"]
-    created = [paths["final"]]
-    if not paths["manifest"].exists():
-        created.append(paths["manifest"])
-    if not layers_exist:
-        created.extend(paths[label] for label in ("product", "layers"))
+        if layers_exist:
+            product_hash = read_json(paths["layers"])["source_sha256"]
+        else:
+            if paths["layers"].exists():
+                raise ValueError("CACHED_PRODUCT_LAYER_INCOMPLETE")
+            product_hash = layout["product_reference"]["sha256"]
+        product_source = product_dir / "reusable" / "ORIGINAL_MASTER_PRODUCT.png"
+
     final_output = product_dir / "output" / f"{sku_label}.png"
-    replacement = final_output.with_name(f".{final_output.name}.tmp")
-    backup = final_output.with_name(f".{final_output.name}.previous")
-    cleanup([replacement, backup])
+    if final_output.exists() and not redo:
+        raise ValueError("SKU_ALREADY_EXISTS")
+    # Stage a supplied product separately, so failed redos leave the old cache intact.
+    update_product = bool(args.product) or not layers_exist
+    staged = {}
+    product_layer = paths["product"]
+    if update_product:
+        product_layer = paths["product"].with_name(f".{sku_label}-product-next.png")
+        staged[paths["product"]] = product_layer
+        staged[paths["layers"]] = paths["layers"].with_name(f".{sku_label}-layers-next.json")
+    staged[final_output] = paths["final"]
+    staged[paths["manifest"]] = paths["manifest"].with_name(f".{sku_label}-manifest-next.json")
+    cleanup(list(staged.values()))
+    backups = {}
+    published = []
     try:
-        if not args.product and not layers_exist:
-            copy_new(product_source, paths["product"])
+        if update_product and not args.product:
+            copy_new(product_source, product_layer)
         compose(
             paths["background"], product_source, layout_path, paths["final"],
-            "SKU_PREVIEW", paths["product"],
+            "SKU_PREVIEW", product_layer,
             configuration if configuration != layout["configuration"] else None,
-            reuse_layers=paths["product"].exists(),
+            reuse_layers=not bool(args.product),
         )
-        require_matching_raster(paths["product"], expected_raster, "SKU_PRODUCT_LAYER")
-        if not layers_exist:
-            atomic_write(paths["layers"], {"source_sha256": product_hash}, new=True)
+        require_matching_raster(product_layer, expected_raster, "SKU_PRODUCT_LAYER")
         require_matching_raster(paths["final"], expected_raster, "SKU_FINAL")
+        if update_product:
+            atomic_write(staged[paths["layers"]], {"source_sha256": product_hash}, new=True)
         manifest = {
             "kind": "SKU_VARIANT",
             "sku_label": sku_label,
             "configuration": configuration,
-            "files": {label: relative_entry(paths[label], product_dir) for label in ("background", "product", "final")},
+            "files": {
+                "background": relative_entry(paths["background"], product_dir),
+                "product": relative_entry(product_layer, product_dir) | {
+                    "path": paths["product"].relative_to(product_dir).as_posix(),
+                },
+                "final": relative_entry(paths["final"], product_dir) | {
+                    "path": final_output.relative_to(product_dir).as_posix(),
+                },
+            },
             "raster": expected_raster,
         }
-        if final_output.exists() and not redo:
-            raise ValueError("SKU_ALREADY_EXISTS")
-        shutil.copy2(paths["final"], replacement)
-        if final_output.exists():
-            shutil.copy2(final_output, backup)
-        replacement.replace(final_output)
-        manifest["files"]["final"] = relative_entry(final_output, product_dir)
-        atomic_write(paths["manifest"], manifest)
-        cleanup([backup, paths["final"], product_dir / f"{sku_label}-preview-background.png"])
+        atomic_write(staged[paths["manifest"]], manifest, new=True)
+        # Publish the image, cache and redo record together; restore them on failure.
+        for target, pending in staged.items():
+            if target.exists():
+                backup = target.with_name(f".{target.name}.previous")
+                shutil.copy2(target, backup)
+                backups[target] = backup
+            pending.replace(target)
+            published.append(target)
     except Exception:
-        if backup.exists():
-            backup.replace(final_output)
-        elif final_output.exists() and not redo:
-            cleanup([final_output])
-        cleanup([replacement])
-        cleanup(created)
+        for target in reversed(published):
+            if target in backups:
+                backups[target].replace(target)
+            else:
+                target.unlink()
         raise
+    finally:
+        cleanup([*staged.values(), *backups.values()])
+    cleanup([product_dir / f"{sku_label}-preview-background.png"])
     json.dump(manifest, sys.stdout, ensure_ascii=False, indent=2)
     print()
 

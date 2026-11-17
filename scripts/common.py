@@ -111,8 +111,6 @@ def load_layout(path: Path) -> tuple[dict, Path]:
         raise ValueError("LAYOUT_PATH_INVALID: expected <product>/reusable/layout.json")
     layout = read_json(path)
     product_dir = path.parent.parent
-    if layout.get("product_directory") != str(product_dir):
-        raise ValueError("PRODUCT_DIRECTORY_MISMATCH")
     verify_information_assets(layout, path.parent)
     return layout, product_dir
 

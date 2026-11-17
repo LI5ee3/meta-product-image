@@ -15,7 +15,7 @@ from PIL import Image, ImageChops, ImageDraw
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from artifact_flow import bind_candidate, create_preview, create_sku
-from common import atomic_write, sha256_file, verify_information_assets, verify_master
+from common import atomic_write, load_layout, sha256_file, verify_information_assets, verify_master
 from compose_image import fit_product_in_box
 from measure_text import (FONT_DEFAULT, fit_title,
                           prepare_layout, text_width, configuration_overlay)
@@ -347,6 +347,108 @@ class MetaLayoutTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "MASTER_ASSET_SET_MISMATCH"):
             verify_master(product_dir)
 
+    def test_unrelated_output_files_and_target_protection(self):
+        layout = prepare_layout(self.args())
+        product_dir = Path(layout["product_directory"])
+        notes = product_dir / "output" / "notes.txt"
+        notes.write_text("keep my notes", encoding="utf-8")
+        extra_dir = product_dir / "output" / "archive"
+        extra_dir.mkdir()
+        self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a", product=str(self.product))
+        final = product_dir / "output" / "ORIGINAL_MASTER_FINAL.png"
+        final.write_bytes(b"existing output")
+        with self.assertRaisesRegex(ValueError, "MASTER_ALREADY_EXISTS"):
+            self.quiet(bind_candidate, product_dir=str(product_dir), candidate_id="a")
+        self.assertEqual(final.read_bytes(), b"existing output")
+        final.unlink()
+        self.quiet(bind_candidate, product_dir=str(product_dir), candidate_id="a")
+        self.quiet(create_sku, product_dir=str(product_dir), product=None,
+                   configuration=None, redo=False, target=None)
+        self.assertEqual(notes.read_text(encoding="utf-8"), "keep my notes")
+        self.assertTrue(extra_dir.is_dir())
+        self.assertEqual(sha256_file(final), sha256_file(product_dir / "output" / "SKU_VARIANT-A.png"))
+
+    def test_moved_product_directory_reuses_master_and_sku(self):
+        layout = prepare_layout(self.args(configuration="8/256 ГБ"))
+        product_dir = Path(layout["product_directory"])
+        self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a", product=str(self.product))
+        self.quiet(bind_candidate, product_dir=str(product_dir), candidate_id="a")
+        args = dict(product_dir=str(product_dir), product=None, configuration=None, redo=False, target=None)
+        self.quiet(create_sku, **args)
+        protected = {p.relative_to(product_dir): sha256_file(p) for p in product_dir.rglob("*") if p.is_file()}
+        moved = self.root / "moved-product"
+        product_dir.rename(moved)
+        self.product.unlink()
+        _, actual_dir = load_layout(moved / "reusable" / "layout.json")
+        self.assertEqual(actual_dir, moved)
+        self.quiet(create_sku, **(args | {"product_dir": str(moved), "configuration": "12/512 ГБ"}))
+        self.quiet(create_sku, **(args | {"product_dir": str(moved), "redo": True, "target": "SKU_VARIANT-A"}))
+        self.assertTrue((moved / "output" / "SKU_VARIANT-B.png").is_file())
+        for relative, digest in protected.items():
+            self.assertEqual(sha256_file(moved / relative), digest)
+        verify_master(moved)
+
+    def test_redo_replaces_product_and_reuses_the_new_cache(self):
+        layout = prepare_layout(self.args(configuration="8/256 ГБ"))
+        product_dir = Path(layout["product_directory"])
+        self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a", product=str(self.product))
+        self.quiet(bind_candidate, product_dir=str(product_dir), candidate_id="a")
+        master = verify_master(product_dir)
+        args = dict(product_dir=str(product_dir), product=str(self.product), configuration=None, redo=False, target=None)
+        self.quiet(create_sku, **args)
+        final = product_dir / "output" / "SKU_VARIANT-A.png"
+        previous_hash = sha256_file(final)
+        replacement = self.root / "replacement.png"
+        Image.new("RGBA", (330, 210), "#8aaac0").save(replacement)
+        source_hash = sha256_file(replacement)
+        self.quiet(create_sku, **(args | {"redo": True, "product": str(replacement)}))
+        new_hash = sha256_file(final)
+        self.assertNotEqual(new_hash, previous_hash)
+        layers = json.loads((product_dir / "reusable" / "SKU_VARIANT-A-layers.json").read_text(encoding="utf-8"))
+        self.assertEqual(layers["source_sha256"], source_hash)
+        manifest = json.loads((product_dir / "SKU_VARIANT-A-preview.json").read_text(encoding="utf-8"))
+        for entry in manifest["files"].values():
+            self.assertEqual(sha256_file(product_dir / entry["path"]), entry["sha256"])
+        replacement.unlink()
+        self.quiet(create_sku, **(args | {"redo": True, "product": None}))
+        self.assertEqual(sha256_file(final), new_hash)
+        self.assertFalse((product_dir / "output" / "SKU_VARIANT-B.png").exists())
+        for entry in master["files"].values():
+            self.assertEqual(sha256_file(product_dir / entry["path"]), entry["sha256"])
+        verify_master(product_dir)
+
+    def test_failed_product_replacement_preserves_output_cache_and_record(self):
+        layout = prepare_layout(self.args(configuration="8/256 ГБ"))
+        product_dir = Path(layout["product_directory"])
+        self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a", product=str(self.product))
+        self.quiet(bind_candidate, product_dir=str(product_dir), candidate_id="a")
+        args = dict(product_dir=str(product_dir), product=str(self.product), configuration=None, redo=False, target=None)
+        self.quiet(create_sku, **args)
+        protected = {p: sha256_file(p) for p in product_dir.rglob("*") if p.is_file()}
+        replacement = self.root / "replacement.png"
+        Image.new("RGBA", (330, 210)).save(replacement)
+        redo = args | {"redo": True, "product": str(replacement), "configuration": "12/512 ГБ"}
+        with self.assertRaisesRegex(ValueError, "PRODUCT_EMPTY"):
+            self.quiet(create_sku, **redo)
+        for path, digest in protected.items():
+            self.assertEqual(sha256_file(path), digest)
+        Image.new("RGBA", (330, 210), "#8aaac0").save(replacement)
+        real_replace = Path.replace
+
+        def fail_record_publish(source, target):
+            if source.name == ".SKU_VARIANT-A-manifest-next.json":
+                raise OSError("record publish failed")
+            return real_replace(source, target)
+
+        with patch.object(Path, "replace", fail_record_publish):
+            with self.assertRaisesRegex(OSError, "record publish failed"):
+                self.quiet(create_sku, **redo)
+        for path, digest in protected.items():
+            self.assertEqual(sha256_file(path), digest)
+        self.assertEqual({p for p in product_dir.rglob("*") if p.is_file()}, set(protected))
+        self.quiet(create_sku, **(args | {"redo": True, "product": None}))
+        for path, digest in protected.items():
+            self.assertEqual(sha256_file(path), digest)
 
 if __name__ == "__main__":
     unittest.main()
