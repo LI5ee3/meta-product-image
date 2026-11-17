@@ -201,7 +201,6 @@ def sku_paths(product_dir: Path, sku_label: str) -> dict[str, Path]:
     return {
         "background": reusable_dir / "ORIGINAL_MASTER_BACKGROUND.png",
         "product": reusable_dir / f"{sku_label}-product.png",
-        "layers": reusable_dir / f"{sku_label}-layers.json",
         "final": product_dir / f"{prefix}.png",
         "manifest": product_dir / f"{prefix}.json",
     }
@@ -257,32 +256,38 @@ def create_sku(args: argparse.Namespace) -> None:
     if configuration is not None:
         configuration = validate_configuration(configuration)
 
-    layers_exist = paths["product"].exists()
+    master_product = product_dir / "reusable" / "ORIGINAL_MASTER_PRODUCT.png"
+    old_layers = product_dir / "reusable" / f"{sku_label}-layers.json"
+    redundant_product = None
     if args.product:
         product_source = Path(args.product).expanduser().resolve()
         product_hash = sha256_file(product_source)
-    else:
-        if redo and not layers_exist:
-            raise ValueError("CACHED_PRODUCT_LAYER_INCOMPLETE")
-        if layers_exist:
-            product_hash = read_json(paths["layers"])["source_sha256"]
+        product_target = paths["product"]
+    elif redo:
+        product_source = (product_dir / previous["files"]["product"]["path"]).resolve()
+        if product_source not in (master_product, paths["product"]):
+            raise ValueError("SKU_PRODUCT_PATH_INVALID")
+        if "source_sha256" in previous:
+            product_hash = previous["source_sha256"]
         else:
-            if paths["layers"].exists():
-                raise ValueError("CACHED_PRODUCT_LAYER_INCOMPLETE")
-            product_hash = layout["product_reference"]["sha256"]
-        product_source = product_dir / "reusable" / "ORIGINAL_MASTER_PRODUCT.png"
+            # Read the preceding Meta format only; retire it after a successful redo.
+            product_hash = read_json(old_layers)["source_sha256"]
+            if product_source == paths["product"] and sha256_file(product_source) == master["files"]["product"]["sha256"]:
+                redundant_product = product_source
+                product_source = master_product
+        product_target = product_source
+    else:
+        product_source = product_target = master_product
+        product_hash = layout["product_reference"]["sha256"]
 
     final_output = product_dir / "output" / f"{sku_label}.png"
     if final_output.exists() and not redo:
         raise ValueError("SKU_ALREADY_EXISTS")
-    # Stage a supplied product separately, so failed redos leave the old cache intact.
-    update_product = bool(args.product) or not layers_exist
     staged = {}
-    product_layer = paths["product"]
-    if update_product:
+    product_layer = product_source
+    if args.product:
         product_layer = paths["product"].with_name(f".{sku_label}-product-next.png")
-        staged[paths["product"]] = product_layer
-        staged[paths["layers"]] = paths["layers"].with_name(f".{sku_label}-layers-next.json")
+        staged[product_target] = product_layer
     staged[final_output] = paths["final"]
     staged[paths["manifest"]] = paths["manifest"].with_name(f".{sku_label}-manifest-next.json")
     cleanup(list(staged.values()))
@@ -293,27 +298,29 @@ def create_sku(args: argparse.Namespace) -> None:
         if args.product:
             layer = prepare_product_layer(product_source, layout["elements"]["PRODUCT_RECT"], background.size)
         else:
-            source = paths["product"] if layers_exist else product_source
-            layer = load_product_layer(source, background.size)
+            layer = load_product_layer(product_source, background.size)
         overlay = load_image(product_dir / "reusable" / layout["elements"]["INFORMATION_OVERLAY_RECT"]["asset"])
         if configuration != layout["configuration"]:
             overlay = configuration_overlay(layout, overlay, configuration)
         save_new_image(compose(background, layer, overlay), paths["final"])
-        if update_product:
+        if args.product:
             save_new_image(layer, product_layer)
-            atomic_write(staged[paths["layers"]], {"source_sha256": product_hash}, new=True)
+        product_entry = master["files"]["product"] if product_target == master_product else (
+            relative_entry(product_layer, product_dir) | {
+                "path": product_target.relative_to(product_dir).as_posix(),
+            }
+        )
         manifest = {
             "kind": "SKU_VARIANT",
             "sku_label": sku_label,
             "configuration": configuration,
+            "source_sha256": product_hash,
             "files": {
                 "background": {
                     "path": paths["background"].relative_to(product_dir).as_posix(),
                     "sha256": master["files"]["background"]["sha256"],
                 },
-                "product": relative_entry(product_layer, product_dir) | {
-                    "path": paths["product"].relative_to(product_dir).as_posix(),
-                },
+                "product": product_entry,
                 "final": relative_entry(paths["final"], product_dir) | {
                     "path": final_output.relative_to(product_dir).as_posix(),
                 },
@@ -321,7 +328,7 @@ def create_sku(args: argparse.Namespace) -> None:
             "raster": expected_raster,
         }
         atomic_write(staged[paths["manifest"]], manifest, new=True)
-        # Publish the image, cache and redo record together; restore them on failure.
+        # Shared master layers are never write targets; publish only this SKU's changes.
         for target, pending in staged.items():
             if target.exists():
                 backup = target.with_name(f".{target.name}.previous")
@@ -338,7 +345,10 @@ def create_sku(args: argparse.Namespace) -> None:
         raise
     finally:
         cleanup([*staged.values(), *backups.values()])
-    cleanup([product_dir / f"{sku_label}-preview-background.png"])
+    obsolete = [old_layers, product_dir / f"{sku_label}-preview-background.png"]
+    if redundant_product is not None:
+        obsolete.append(redundant_product)
+    cleanup(obsolete)
     json.dump(manifest, sys.stdout, ensure_ascii=False, indent=2)
     print()
 

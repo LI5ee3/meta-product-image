@@ -260,6 +260,10 @@ class MetaLayoutTests(unittest.TestCase):
         final = product_dir/"output/SKU_VARIANT-A.png"
         manifest = product_dir/"SKU_VARIANT-A-preview.json"
         self.assertEqual(json.loads(manifest.read_text(encoding="utf-8"))["configuration"], "12/512 ГБ")
+        record = json.loads(manifest.read_text(encoding="utf-8"))
+        self.assertEqual(record["source_sha256"], layout["product_reference"]["sha256"])
+        self.assertEqual(record["files"]["product"]["path"], "reusable/ORIGINAL_MASTER_PRODUCT.png")
+        self.assertFalse(list((product_dir / "reusable").glob("SKU_VARIANT-*")))
         config = layout["elements"]["CONFIGURATION_RECT"]
 
         def only_configuration_changed(a, b):
@@ -425,9 +429,9 @@ class MetaLayoutTests(unittest.TestCase):
         self.quiet(create_sku, **(args | {"redo": True, "product": str(replacement)}))
         new_hash = sha256_file(final)
         self.assertNotEqual(new_hash, previous_hash)
-        layers = json.loads((product_dir / "reusable" / "SKU_VARIANT-A-layers.json").read_text(encoding="utf-8"))
-        self.assertEqual(layers["source_sha256"], source_hash)
         manifest = json.loads((product_dir / "SKU_VARIANT-A-preview.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["source_sha256"], source_hash)
+        self.assertFalse((product_dir / "reusable" / "SKU_VARIANT-A-layers.json").exists())
         for entry in manifest["files"].values():
             self.assertEqual(sha256_file(product_dir / entry["path"]), entry["sha256"])
         replacement.unlink()
@@ -470,6 +474,92 @@ class MetaLayoutTests(unittest.TestCase):
         self.quiet(create_sku, **(args | {"redo": True, "product": None}))
         for path, digest in protected.items():
             self.assertEqual(sha256_file(path), digest)
+
+    def test_shared_product_replacement_is_isolated_and_recovers_on_failure(self):
+        layout = prepare_layout(self.args(configuration="8/256 ГБ"))
+        product_dir = Path(layout["product_directory"])
+        self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a", product=str(self.product))
+        self.quiet(bind_candidate, product_dir=str(product_dir), candidate_id="a")
+        args = dict(product_dir=str(product_dir), product=None, configuration="12/512 ГБ", redo=False, target=None)
+        self.quiet(create_sku, **args)
+        self.quiet(create_sku, **(args | {"configuration": "16/512 ГБ"}))
+        self.assertFalse(list((product_dir / "reusable").glob("SKU_VARIANT-*")))
+        protected = {p: sha256_file(p) for p in product_dir.rglob("*") if p.is_file()}
+        replacement = self.root / "replacement.png"
+        Image.new("RGBA", (330, 210), "#8aaac0").save(replacement)
+        redo = args | {"redo": True, "target": "SKU_VARIANT-A", "product": str(replacement), "configuration": None}
+        real_replace = Path.replace
+
+        def fail_record_publish(source, target):
+            if source.name == ".SKU_VARIANT-A-manifest-next.json":
+                raise OSError("record publish failed")
+            return real_replace(source, target)
+
+        with patch.object(Path, "replace", fail_record_publish):
+            with self.assertRaisesRegex(OSError, "record publish failed"):
+                self.quiet(create_sku, **redo)
+        self.assertEqual({p: sha256_file(p) for p in product_dir.rglob("*") if p.is_file()}, protected)
+        self.quiet(create_sku, **redo)
+        record = json.loads((product_dir / "SKU_VARIANT-A-preview.json").read_text(encoding="utf-8"))
+        self.assertEqual(record["files"]["product"]["path"], "reusable/SKU_VARIANT-A-product.png")
+        self.assertEqual(record["configuration"], "12/512 ГБ")
+        self.assertFalse(list((product_dir / "reusable").glob("*-layers.json")))
+        changed = {product_dir / "output/SKU_VARIANT-A.png", product_dir / "SKU_VARIANT-A-preview.json"}
+        for path, digest in protected.items():
+            if path not in changed:
+                self.assertEqual(sha256_file(path), digest)
+        new_hash = sha256_file(product_dir / "output/SKU_VARIANT-A.png")
+        replacement.unlink()
+        self.quiet(create_sku, **(redo | {"product": None}))
+        self.assertEqual(sha256_file(product_dir / "output/SKU_VARIANT-A.png"), new_hash)
+
+    def test_previous_meta_records_consolidate_only_after_success(self):
+        layout = prepare_layout(self.args(configuration="8/256 ГБ"))
+        product_dir = Path(layout["product_directory"])
+        self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a", product=str(self.product))
+        self.quiet(bind_candidate, product_dir=str(product_dir), candidate_id="a")
+        args = dict(product_dir=str(product_dir), product=None, configuration="12/512 ГБ", redo=False, target=None)
+        self.quiet(create_sku, **args)
+        other = self.root / "other.png"
+        Image.new("RGBA", (170, 220), "#8aaac0").save(other)
+        self.quiet(create_sku, **(args | {"product": str(other)}))
+        reusable = product_dir / "reusable"
+        master_product = reusable / "ORIGINAL_MASTER_PRODUCT.png"
+        # Reconstruct the immediately preceding Meta file layout, not a new style.
+        for label in ("A", "B"):
+            path = product_dir / f"SKU_VARIANT-{label}-preview.json"
+            record = json.loads(path.read_text(encoding="utf-8"))
+            layer = reusable / f"SKU_VARIANT-{label}-product.png"
+            if label == "A":
+                layer.write_bytes(master_product.read_bytes())
+            atomic_write(reusable / f"SKU_VARIANT-{label}-layers.json", {"source_sha256": record.pop("source_sha256")})
+            record["files"]["product"] = {"path": layer.relative_to(product_dir).as_posix(), "sha256": sha256_file(layer)}
+            atomic_write(path, record)
+        self.product.unlink()
+        other.unlink()
+        protected = {p: sha256_file(p) for p in product_dir.rglob("*") if p.is_file()}
+        redo = args | {"redo": True, "target": "SKU_VARIANT-A", "configuration": None}
+        with patch("artifact_flow.atomic_write", side_effect=OSError("record write failed")):
+            with self.assertRaisesRegex(OSError, "record write failed"):
+                self.quiet(create_sku, **redo)
+        self.assertEqual({p: sha256_file(p) for p in product_dir.rglob("*") if p.is_file()}, protected)
+        for label in ("A", "B"):
+            self.quiet(create_sku, **(redo | {"target": f"SKU_VARIANT-{label}"}))
+            final = product_dir / f"output/SKU_VARIANT-{label}.png"
+            self.assertEqual(sha256_file(final), protected[final])
+            path = product_dir / f"SKU_VARIANT-{label}-preview.json"
+            record = json.loads(path.read_text(encoding="utf-8"))
+            self.assertIn("source_sha256", record)
+            expected = "ORIGINAL_MASTER_PRODUCT.png" if label == "A" else "SKU_VARIANT-B-product.png"
+            self.assertEqual(record["files"]["product"]["path"], "reusable/" + expected)
+        self.assertFalse((reusable / "SKU_VARIANT-A-product.png").exists())
+        self.assertFalse(list(reusable.glob("*-layers.json")))
+        for path, digest in protected.items():
+            if "SKU_VARIANT-" not in path.name:
+                self.assertEqual(sha256_file(path), digest)
+        self.quiet(create_sku, **redo)
+        self.assertEqual(sha256_file(product_dir / "output/SKU_VARIANT-A.png"), protected[product_dir / "output/SKU_VARIANT-A.png"])
+
 
 if __name__ == "__main__":
     unittest.main()

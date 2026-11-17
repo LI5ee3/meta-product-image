@@ -119,16 +119,26 @@ python scripts/artifact_flow.py sku --product-dir "成品/产品完整名称" --
 
 ```text
 产品完整名称/
+├── SKU_VARIANT-A-preview.json       A：配置、产品层引用与来源
+├── SKU_VARIANT-B-preview.json       B：配置、产品层引用与来源
 ├── output/                         正式成品
 │   ├── ORIGINAL_MASTER_FINAL.png
 │   ├── SKU_VARIANT-A.png
 │   └── SKU_VARIANT-B.png
-└── reusable/                       布局、信息层、背景与缓存
+└── reusable/
+    ├── layout.json
+    ├── information-overlay.png
+    ├── master.json
+    ├── ORIGINAL_MASTER_BACKGROUND.png
+    ├── ORIGINAL_MASTER_PRODUCT.png  配置 SKU 直接共用
+    └── SKU_VARIANT-B-product.png    仅提供新产品图的 SKU 保存
 ```
 
 完整产品目录可整体移动或复制，之后使用新的产品目录路径，无需修改缓存 JSON。`output` 中自行存放的其他文件不会阻止制作，也不会被删除；脚本只检查本次写入目标，防止覆盖已有成品。
 
-全尺寸母版预览放在 `output` 之外。SKU 直接读取锁定母版背景，不另存背景副本；临时预览在成品保存成功后删除，`SKU_VARIANT-*-preview.json` 重做记录继续保留。成功重做时也会清理该 SKU 之前留下的背景副本。项目仅使用当前 Meta 数据格式，不提供历史格式兼容或迁移。重新设计产品时使用新的输出根目录，保留已有母版与成品。
+全尺寸母版预览放在 `output` 之外；临时 SKU 预览在保存成品后删除。每个 SKU 只保留一份 `SKU_VARIANT-*-preview.json`，同时记录配置、产品层路径及 `source_sha256`，不再生成独立的 `*-layers.json`。背景共用母版；只换配置时也共用母版产品层，提供新图才保存该 SKU 自己的产品层。后续换图只更新当前 SKU，不影响母版或其他 SKU。
+
+上一版 Meta SKU 可直接重做：成功后合并来源记录并删除该 SKU 的旧 `layers.json`；产品层副本与母版文件完全相同时改为共用并删除副本，不同颜色的产品层保留。失败不清理旧文件，未重做的 SKU 不受影响。不支持旧 MD3 样式；重新设计产品仍使用新的输出根目录，保留已有母版与成品。
 
 ## 📄 许可
 
