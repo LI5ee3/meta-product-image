@@ -39,7 +39,7 @@ class MetaLayoutTests(unittest.TestCase):
         values = dict(complete_name="Тест часы", title=None, title_lines=None, title_line_1=None,
                       title_line_2=None, version="Глобальная версия", configuration=None, features=str(self.features),
                       product_reference=str(self.product), logo=str(self.logo), output_root=str(self.root),
-                      canvas_height=2048, font_path=str(FONT_DEFAULT), font_weight=600)
+                      canvas_height=2048)
         return argparse.Namespace(**(values | changes))
 
     def quiet(self, call, **values):
@@ -167,6 +167,8 @@ class MetaLayoutTests(unittest.TestCase):
     def test_features_and_information_regions(self):
         layout = prepare_layout(self.args(title="Фитнес-браслет Xiaomi Smart Band 10"))
         self.assertEqual(layout["style"], "meta")
+        self.assertEqual(layout["font"]["path"], str(FONT_DEFAULT))
+        self.assertEqual(layout["font"]["weight"], 600)
         self.assertNotIn("CONFIGURATION_RECT", layout["elements"])
         self.assertAlmostEqual(layout["elements"]["PRODUCT_RECT"]["y"], 308/1024)
         self.assertEqual(len(layout["features"]), 3)
@@ -223,10 +225,23 @@ class MetaLayoutTests(unittest.TestCase):
             self.assertGreaterEqual(diff[1], round(308/1024*1448))
             self.assertLessEqual(diff[3], round(786/1024*1448)+1)
         final_hash = sha256_file(final)
+        background = product_dir/"reusable/ORIGINAL_MASTER_BACKGROUND.png"
+        background_hash = sha256_file(background)
+        manifest = json.loads((product_dir/"SKU_VARIANT-A-preview.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["files"]["background"]["path"], "reusable/ORIGINAL_MASTER_BACKGROUND.png")
+        self.assertFalse(list(product_dir.glob("SKU_VARIANT-*-preview.png")))
+        self.assertFalse(list(product_dir.glob("SKU_VARIANT-*-preview-background.png")))
+        # A successful redo also removes a redundant copy left by the previous workflow.
+        old_background = product_dir/"SKU_VARIANT-A-preview-background.png"
+        old_background.write_bytes(background.read_bytes())
         self.quiet(create_sku, **(sku_args | {"redo":True}))
         self.assertEqual(sha256_file(final), final_hash)
+        self.assertFalse(old_background.exists())
         self.quiet(create_sku, **sku_args)
         self.assertTrue((product_dir/"output/SKU_VARIANT-B.png").exists())
+        self.assertEqual(sha256_file(background), background_hash)
+        self.assertFalse(list(product_dir.glob("SKU_VARIANT-*-preview.png")))
+        self.assertFalse(list(product_dir.glob("SKU_VARIANT-*-preview-background.png")))
         self.assertEqual(sha256_file(master), expected_hash)
 
     def test_configuration_sku_reuses_master_and_preserves_redo_state(self):

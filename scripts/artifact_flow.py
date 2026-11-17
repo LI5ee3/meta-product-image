@@ -83,8 +83,6 @@ def cleanup(paths: list[Path]) -> None:
 
 
 def preview_paths(product_dir: Path, candidate_id: str) -> dict[str, Path]:
-    if candidate_id.endswith(("-scene", "-preview")):
-        raise ValueError("CANDIDATE_ID_RESERVED")
     prefix = f"master-candidate-{candidate_id}-preview"
     reusable_dir = product_dir / "reusable"
     return {
@@ -205,11 +203,11 @@ def bind_candidate(args: argparse.Namespace) -> None:
     print()
 
 
-def sku_preview_paths(product_dir: Path, sku_label: str) -> dict[str, Path]:
+def sku_paths(product_dir: Path, sku_label: str) -> dict[str, Path]:
     reusable_dir = product_dir / "reusable"
     prefix = f"{sku_label}-preview"
     return {
-        "background": product_dir / f"{prefix}-background.png",
+        "background": reusable_dir / "ORIGINAL_MASTER_BACKGROUND.png",
         "product": reusable_dir / f"{sku_label}-product.png",
         "layers": reusable_dir / f"{sku_label}-layers.json",
         "final": product_dir / f"{prefix}.png",
@@ -256,20 +254,12 @@ def create_sku(args: argparse.Namespace) -> None:
     ensure_output_allowed(product_dir)
     master = verify_master(product_dir)
     expected_raster = normalize_raster_contract(master.get("raster"), "MASTER_RASTER")
-    background_source = product_dir / "reusable" / "ORIGINAL_MASTER_BACKGROUND.png"
-    require_matching_raster(background_source, expected_raster, "SKU_BACKGROUND")
     redo = bool(args.redo)
     sku_label = resolve_sku_label(product_dir, redo, args.target)
-    paths = sku_preview_paths(product_dir, sku_label)
+    paths = sku_paths(product_dir, sku_label)
     previous = read_json(paths["manifest"]) if redo else {}
     if redo and (set(previous.get("files", {})) != {"background", "product", "final"} or "configuration" not in previous):
         raise ValueError("SKU_MANIFEST_INVALID")
-    reuse_background = redo
-    if reuse_background:
-        entry = previous["files"]["background"]
-        if entry["path"] != paths["background"].relative_to(product_dir).as_posix() or sha256_file(paths["background"]) != entry["sha256"]:
-            raise ValueError("SKU_BACKGROUND_HASH_MISMATCH")
-        background_source = paths["background"]
     configuration = args.configuration
     if configuration is None:
         configuration = previous["configuration"] if redo else layout["configuration"]
@@ -277,8 +267,7 @@ def create_sku(args: argparse.Namespace) -> None:
         configuration = validate_configuration(configuration)
         if not layout.get("elements", {}).get("CONFIGURATION_RECT"):
             raise ValueError("MASTER_CONFIGURATION_MISSING")
-    transient = ["final"] if reuse_background else ["background", "final"]
-    cleanup([paths[label] for label in transient])
+    cleanup([paths["final"]])
     layers_exist = paths["product"].exists()
     if layers_exist:
         layers = read_json(paths["layers"])
@@ -294,7 +283,7 @@ def create_sku(args: argparse.Namespace) -> None:
             raise ValueError("CACHED_PRODUCT_LAYER_INCOMPLETE")
         product_source = product_dir/"reusable"/"ORIGINAL_MASTER_PRODUCT.png"
         product_hash = layers["source_sha256"] if layers_exist else layout["product_reference"]["sha256"]
-    created = [paths[label] for label in transient]
+    created = [paths["final"]]
     if not paths["manifest"].exists():
         created.append(paths["manifest"])
     if not layers_exist:
@@ -304,8 +293,6 @@ def create_sku(args: argparse.Namespace) -> None:
     backup = final_output.with_name(f".{final_output.name}.previous")
     cleanup([replacement, backup])
     try:
-        if not reuse_background:
-            copy_new(background_source, paths["background"])
         if not args.product and not layers_exist:
             copy_new(product_source, paths["product"])
         compose(
@@ -333,7 +320,7 @@ def create_sku(args: argparse.Namespace) -> None:
         replacement.replace(final_output)
         manifest["files"]["final"] = relative_entry(final_output, product_dir)
         atomic_write(paths["manifest"], manifest)
-        cleanup([backup])
+        cleanup([backup, paths["final"], product_dir / f"{sku_label}-preview-background.png"])
     except Exception:
         if backup.exists():
             backup.replace(final_output)

@@ -61,7 +61,7 @@ Select useful complete official wording before fitting, rather than selecting fa
 
 The logical canvas is 1536×2048. Products use one centered contain box measured from source Alpha bounds. Preserve proportions and all visible artwork; watches, phones, tablets and different source margins use the same rule.
 
-The cached overlay contains the Logo, title, optional version and configuration, three icons and their text on a translucent rounded panel. Rubik weights: title 600, configuration and feature headline 500, other text 400. Its SHA-256 is checked. Color SKUs reuse it unchanged; configuration SKUs replace only the configuration line in a temporary copy, preserving the master and every other cached pixel.
+The cached overlay contains the Logo, title, optional version and configuration, three icons and their text on a translucent rounded panel. The bundled Rubik font and weights are fixed: title 600, configuration and feature headline 500, other text 400. Font sizes and line wrapping still adapt automatically; do not substitute another font or override these weights. Its SHA-256 is checked. Color SKUs reuse it unchanged; configuration SKUs replace only the configuration line in a temporary copy, preserving the master and every other cached pixel.
 
 Reuse a current Meta layout. Never remeasure or overwrite a product directory silently. To redesign a locked product, use a new output root and preserve its master/SKUs.
 
@@ -102,14 +102,14 @@ Redo the latest SKU:
 
     python scripts/artifact_flow.py sku --product-dir "<PRODUCT_DIRECTORY>" --redo
 
-For an explicitly named SKU add --target SKU_VARIANT-A. On redo, omitted --product and --configuration preserve that SKU's current product and configuration; its cached background is reused unchanged. Append --configuration "12/512 ГБ" to change only its configuration. Retain source identity when reusing cached layers.
+For an explicitly named SKU add --target SKU_VARIANT-A. On redo, omitted --product and --configuration preserve that SKU's current product and configuration; the locked master background is reused unchanged. Append --configuration "12/512 ГБ" to change only its configuration. Retain source identity when reusing cached layers.
 A redo preserves the old final until all checks pass, atomically replaces the same filename and does not consume a sequence label.
 
 ## Files and checks
 
 Use only the current Meta data format. Do not accept historical style identifiers or manifests, or migrate them automatically. Create a new master in a new output root when the format is unsupported; preserve existing outputs.
 
-Only confirmed ORIGINAL_MASTER_FINAL.png and SKU_VARIANT-*.png belong in output. Cache layout, overlay, bound background and layers in reusable; keep full-size previews outside output. Do not generate production thumbnails.
+Only confirmed ORIGINAL_MASTER_FINAL.png and SKU_VARIANT-*.png belong in output. Cache layout, overlay, bound background and layers in reusable; keep full-size master previews outside output. SKUs read the bound background directly, without per-SKU copies. Delete temporary SKU preview images after saving the final, but retain SKU_VARIANT-*-preview.json records for redo. A successful redo also removes that SKU's previous redundant background copy. Do not generate production thumbnails.
 
 Check source identity, glyphs, complete outline, title/feature fit, exactly three facts, version, actual raster and output preservation. The user owns master visual acceptance.
 

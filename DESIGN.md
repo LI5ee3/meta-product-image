@@ -12,7 +12,7 @@
 
 - 产品与 Logo 使用用户提供的原始素材，保留颜色、比例和可见内容，由本地脚本合成。（用户确认）
 - 新母版使用固定的 [已确认 Meta 背景](assets/meta-clear/background.png)，SKU 沿用锁定背景，不生成或替换背景。素材来源记录保留在 [SOURCE.json](assets/meta-clear/SOURCE.json)。（用户确认）
-- 字体沿用 assets/Rubik[wght].ttf，覆盖俄语；不因参考 Astryx 而替换项目字体。（Agent 推断）
+- 字体固定为 assets/Rubik[wght].ttf，覆盖俄语；不提供字体或字重覆盖参数，字号与换行仍自动适配。（用户确认）
 - 图标使用 [官方 Lucide 素材](assets/lucide/README.md)，来源与许可证随素材保存。（用户确认）
 
 ## 语义角色
@@ -42,13 +42,13 @@
 
 - [已确认 Meta 样板](references/meta-approved.png)：OnePlus Watch 4 的选定视觉基准。（用户确认）
 - scripts/measure_text.py：测量名称与三卖点，缓存整张透明信息层。（Agent 推断）
-- scripts/compose_image.py：按照可见边界适配产品，再合成固定背景和信息层。（Agent 推断）
+- scripts/compose_image.py：内部合成模块，按照可见边界适配产品，再合成固定背景和信息层；统一由 artifact_flow.py 调用。（Agent 推断）
 - scripts/artifact_flow.py：预览、明确锁定、颜色 SKU 与重做的现有入口。（Agent 推断）
 - tests/test_meta_layout.py：比例、文字、卖点、资产校验和流程回归用例。（Agent 推断）
 
 ## 用户取舍
 
-- 2026-11-17：移除可选背景生成分支，保留固定背景、本地合成、母版锁定和 SKU 复用。（用户确认）
+- 2026-11-17：移除可选背景生成和备用合成入口，固定字体与字重；SKU 共享锁定母版背景并清理临时预览，保留本地合成、母版锁定和 SKU 复用。（用户确认）
 
 - 2026-11-09：选定 Meta；将不同产品比例、长名称与三个俄语卖点落实到现有 Skill，保持流程简单、可复用。（用户确认）
 - 默认流程为用户指定官网网址、提取卖点、自动排版、本地预览、用户锁定、颜色或配置 SKU 复用；更换配置只重绘该行，更换颜色不重测文字，两者均不重画背景。（用户确认）

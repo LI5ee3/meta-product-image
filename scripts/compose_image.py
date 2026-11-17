@@ -1,18 +1,12 @@
 #!/usr/bin/env python3
 """Composite the Meta product and cached information overlay in one pass."""
 
-import argparse
-import json
-import sys
 from pathlib import Path
 
 from PIL import Image
 
 from common import load_layout
 from measure_text import configuration_overlay
-
-
-OUTPUT_KINDS = ("CANDIDATE", "SKU_PREVIEW")
 
 
 def load_image(path: Path, mode: str) -> Image.Image:
@@ -125,29 +119,3 @@ def compose(
     except (KeyError, TypeError) as exc:
         raise ValueError(str(exc)) from exc
     return output
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--background", type=Path, required=True)
-    parser.add_argument("--product", type=Path, required=True)
-    parser.add_argument("--layout", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--output-kind", required=True, choices=OUTPUT_KINDS)
-    parser.add_argument("--product-layer", type=Path, required=True)
-    parser.add_argument("--reuse-layers", action="store_true")
-    parser.add_argument("--configuration")
-    args = parser.parse_args()
-
-    try:
-        output = compose(args.background, args.product, args.layout, args.output,
-                         args.output_kind, args.product_layer, args.configuration,
-                         reuse_layers=args.reuse_layers)
-    except (OSError, ValueError) as exc:
-        sys.exit(str(exc))
-    json.dump({"output": str(output)}, sys.stdout, ensure_ascii=False)
-    print()
-
-
-if __name__ == "__main__":
-    main()

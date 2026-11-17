@@ -14,7 +14,7 @@ from common import atomic_write, read_json, sha256_file
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 FONT_DEFAULT = ASSETS / "Rubik[wght].ttf"
-FONT_WEIGHT_DEFAULT = 600
+TITLE_WEIGHT = 600
 INK = (24, 42, 53, 255)
 SECONDARY = (71, 91, 105, 255)
 ACCENT = (36, 98, 131, 255)
@@ -165,7 +165,7 @@ def configuration_overlay(layout: dict, reusable: Path, text: str) -> Image.Imag
     rect = layout.get("elements", {}).get("CONFIGURATION_RECT")
     if layout.get("style") != "meta" or not rect:
         raise ValueError("MASTER_CONFIGURATION_MISSING: the master has no configuration line")
-    font_path = Path(layout["font"]["path"])
+    font_path = FONT_DEFAULT
     check_glyph_coverage(font_path, 500, text)
     with Image.open(reusable/layout["elements"]["INFORMATION_OVERLAY_RECT"]["asset"]) as source:
         overlay = source.convert("RGBA")
@@ -183,7 +183,7 @@ def prepare_layout(args: argparse.Namespace) -> dict:
         raise ValueError("CANVAS_HEIGHT_INVALID: use a positive multiple of 4")
     width, height = args.canvas_height*3//4, args.canvas_height
     scale = height/1024
-    font_path = Path(args.font_path).expanduser().resolve()
+    font_path = FONT_DEFAULT
     product_dir = resolve_product_directory(Path(args.output_root), args.complete_name)
     reusable = product_dir/"reusable"
     if (reusable/"layout.json").exists():
@@ -202,9 +202,9 @@ def prepare_layout(args: argparse.Namespace) -> dict:
     if configuration is not None:
         configuration = validate_configuration(configuration)
     texts = [title, args.version or "", configuration or "", *[f[k] for f in features for k in ("headline", "label")]]
-    for weight in {400, 500, args.font_weight}:
+    for weight in {400, 500, TITLE_WEIGHT}:
         check_glyph_coverage(font_path, weight, *texts)
-    title_lines, title_font = fit_title(title, font_path, scale, args.font_weight, manual)
+    title_lines, title_font = fit_title(title, font_path, scale, TITLE_WEIGHT, manual)
     # Supporting text follows the title only until its readability floor.
     supporting_scale = min(1, title_font.size/(56*scale))
     product_meta = image_metadata(Path(args.product_reference).expanduser().resolve())
@@ -298,7 +298,7 @@ def prepare_layout(args: argparse.Namespace) -> dict:
         elements["CONFIGURATION_RECT"] = configuration_rect
     report = {"schema":2, "style":"meta", "product_directory":str(product_dir),
               "canvas":{"width":width,"height":height,"ratio":"3:4","purpose":"logical layout only"},
-              "font":{"path":str(font_path),"name":"Rubik Variable","weight":args.font_weight},
+              "font":{"path":str(font_path),"name":"Rubik Variable","weight":TITLE_WEIGHT},
               "product_reference":product_meta, "logo":logo_meta, "complete_name":args.complete_name,
               "rendered_title":"\n".join(title_lines), "title_lines":title_lines, "title_line_count":len(title_lines),
               "title_font_size":title_font.size, "version":args.version, "configuration":configuration, "features":features,
@@ -322,8 +322,6 @@ def main() -> None:
     parser.add_argument("--logo", required=True)
     parser.add_argument("--output-root", required=True)
     parser.add_argument("--canvas-height", type=int, default=2048)
-    parser.add_argument("--font-path", default=str(FONT_DEFAULT))
-    parser.add_argument("--font-weight", type=int, default=FONT_WEIGHT_DEFAULT)
     try:
         report = prepare_layout(parser.parse_args())
     except (OSError, ValueError) as exc:
