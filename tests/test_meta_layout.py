@@ -19,7 +19,6 @@ from common import atomic_write, sha256_file, verify_information_assets, verify_
 from compose_image import fit_product_in_box
 from measure_text import (FONT_DEFAULT, fit_title,
                           prepare_layout, text_width, configuration_overlay)
-from scene_prompt import build_prompt
 
 
 class MetaLayoutTests(unittest.TestCase):
@@ -153,8 +152,6 @@ class MetaLayoutTests(unittest.TestCase):
                 self.assertGreaterEqual(product["y"]-config["y"]-config["h"]+1e-8, 20/1024)
                 self.assertGreaterEqual(config["h"]*2048/1.2+1e-8, 64)
                 self.assertAlmostEqual(product["y"]+product["h"], 786/1024)
-                zone = layout["clear_zones"][0]
-                self.assertLessEqual(config["y"]+config["h"], zone["y"]+zone["h"])
                 with Image.open(self.product) as image:
                     fitted, _, top = fit_product_in_box(image, product, 1536, 2048)
                 self.assertGreaterEqual(top+1, product["y"]*2048)
@@ -180,11 +177,6 @@ class MetaLayoutTests(unittest.TestCase):
             self.assertLessEqual(r["x"]+r["w"], 1)
             self.assertLessEqual(r["y"]+r["h"], 1)
             self.assertTrue(r["y"]+r["h"] <= region["y"] or r["y"] >= region["y"]+region["h"])
-        with contextlib.redirect_stdout(io.StringIO()) as output:
-            build_prompt(argparse.Namespace(layout=str(Path(layout["product_directory"])/"reusable/layout.json"),mode="MASTER",master=None,redo=False,additional_prompt=None))
-        self.assertIn("Astryx", output.getvalue())
-        self.assertIn("TOP_INFORMATION", output.getvalue())
-        self.assertIn("BOTTOM_FEATURES", output.getvalue())
         with self.assertRaisesRegex(ValueError, "REFUSE_REMEASURE"):
             prepare_layout(self.args())
         reusable = Path(layout["product_directory"])/"reusable"
@@ -209,10 +201,10 @@ class MetaLayoutTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "FEATURE_LABEL_OVERFLOW"):
             prepare_layout(self.args())
 
-    def test_master_sku_reuse_and_failed_redo_preserves_final(self):
+    def test_master_sku_reuse_and_redo(self):
         layout = prepare_layout(self.args(configuration="8/256 ГБ"))
         product_dir = Path(layout["product_directory"])
-        self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a", product=str(self.product), generated_background=None)
+        self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a", product=str(self.product))
         preview = product_dir/"master-candidate-a-preview.png"
         expected_hash = sha256_file(preview)
         self.quiet(bind_candidate, product_dir=str(product_dir), candidate_id="a")
@@ -222,7 +214,7 @@ class MetaLayoutTests(unittest.TestCase):
         self.assertEqual((contract["width"], contract["height"]), (1086,1448))
         other = self.root/"Другой цвет.png"
         Image.new("RGBA", (330,210), "#8aaac0").save(other)
-        sku_args = dict(product_dir=str(product_dir),product=str(other),generated_background=None,configuration=None,redo=False,target=None)
+        sku_args = dict(product_dir=str(product_dir),product=str(other),configuration=None,redo=False,target=None)
         self.quiet(create_sku, **sku_args)
         final = product_dir/"output/SKU_VARIANT-A.png"
         with Image.open(master) as a, Image.open(final) as b:
@@ -231,11 +223,6 @@ class MetaLayoutTests(unittest.TestCase):
             self.assertGreaterEqual(diff[1], round(308/1024*1448))
             self.assertLessEqual(diff[3], round(786/1024*1448)+1)
         final_hash = sha256_file(final)
-        wrong = self.root/"wrong.png"
-        Image.new("RGB", (96,128), "white").save(wrong)
-        with self.assertRaisesRegex(ValueError, "SKU_BACKGROUND_RASTER_MISMATCH"):
-            self.quiet(create_sku, **(sku_args | {"redo":True,"generated_background":str(wrong)}))
-        self.assertEqual(sha256_file(final), final_hash)
         self.quiet(create_sku, **(sku_args | {"redo":True}))
         self.assertEqual(sha256_file(final), final_hash)
         self.quiet(create_sku, **sku_args)
@@ -245,13 +232,13 @@ class MetaLayoutTests(unittest.TestCase):
     def test_configuration_sku_reuses_master_and_preserves_redo_state(self):
         layout = prepare_layout(self.args(configuration="8/256 ГБ"))
         product_dir = Path(layout["product_directory"])
-        self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a", product=str(self.product), generated_background=None)
+        self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a", product=str(self.product))
         self.quiet(bind_candidate, product_dir=str(product_dir), candidate_id="a")
         master = verify_master(product_dir)
         protected = {entry["path"]:entry["sha256"] for entry in master["files"].values()}
         protected["reusable/information-overlay.png"] = sha256_file(product_dir/"reusable/information-overlay.png")
         self.product.unlink()  # Configuration reuse must work from cached master layers alone.
-        args = dict(product_dir=str(product_dir), product=None, generated_background=None,
+        args = dict(product_dir=str(product_dir), product=None,
                     configuration="12/512 ГБ", redo=False, target=None)
         self.quiet(create_sku, **args)
         final = product_dir/"output/SKU_VARIANT-A.png"
@@ -284,9 +271,7 @@ class MetaLayoutTests(unittest.TestCase):
 
         other = self.root/"other.png"
         Image.new("RGBA", (170,220), "#8aaac0").save(other)
-        backdrop = self.root/"backdrop.png"
-        Image.new("RGB", (1086,1448), "#dde9ee").save(backdrop)
-        self.quiet(create_sku, **(args | {"product":str(other),"generated_background":str(backdrop)}))
+        self.quiet(create_sku, **(args | {"product":str(other)}))
         color_sku = product_dir/"output/SKU_VARIANT-B.png"
         previous = self.root/"previous.png"
         previous.write_bytes(color_sku.read_bytes())
@@ -308,38 +293,26 @@ class MetaLayoutTests(unittest.TestCase):
         expected = layout_path.read_bytes()
         with self.assertRaisesRegex(ValueError, "UNSUPPORTED_LAYOUT_STYLE"):
             self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a",
-                       product=str(self.product), generated_background=None)
+                       product=str(self.product))
         self.assertEqual(layout_path.read_bytes(), expected)
         self.assertEqual(set(product_dir.rglob("*")), {reusable, layout_path})
 
-    def test_meta_master_reuse_and_prompt(self):
+    def test_meta_master_reuse_and_manifest_validation(self):
         layout = prepare_layout(self.args(configuration="8/256 ГБ"))
         product_dir = Path(layout["product_directory"])
         self.quiet(create_preview, product_dir=str(product_dir), candidate_id="a",
-                   product=str(self.product), generated_background=None)
+                   product=str(self.product))
         self.quiet(bind_candidate, product_dir=str(product_dir), candidate_id="a")
         reusable = product_dir/"reusable"
         master = verify_master(product_dir)
         self.assertEqual(set(master["files"]), {"layout", "background", "product", "final"})
         master_hash = sha256_file(reusable/"master.json")
-        args = dict(product_dir=str(product_dir), product=None, generated_background=None,
+        args = dict(product_dir=str(product_dir), product=None,
                     configuration=None, redo=False, target=None)
         self.quiet(create_sku, **args)
         final = product_dir/"output/SKU_VARIANT-A.png"
         self.assertEqual(sha256_file(final), sha256_file(product_dir/"output/ORIGINAL_MASTER_FINAL.png"))
         self.assertEqual(sha256_file(reusable/"master.json"), master_hash)
-        prompt_args = dict(layout=str(reusable/"layout.json"), mode="SKU",
-                           master=str(reusable/"master.json"), redo=True, additional_prompt="Keep it light")
-        with contextlib.redirect_stdout(io.StringIO()) as output:
-            build_prompt(argparse.Namespace(**prompt_args))
-        self.assertIn("locked master background", output.getvalue())
-        self.assertIn("TOP_INFORMATION", output.getvalue())
-        self.assertIn("BOTTOM_FEATURES", output.getvalue())
-        self.assertIn("Keep it light", output.getvalue())
-        with contextlib.redirect_stdout(io.StringIO()) as output:
-            build_prompt(argparse.Namespace(**(prompt_args | {"redo":False, "additional_prompt":None})))
-        self.assertIn("Keep it light", output.getvalue())
-
         manifest_path = product_dir/"SKU_VARIANT-A-preview.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         final_hash = sha256_file(final)

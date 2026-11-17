@@ -12,8 +12,7 @@ Invoke this Skill with $meta-product-image.
 
 USER_PROVIDED_URL -> OFFICIAL_FACTS -> MEASURE_ONCE -> LOCAL_PREVIEW -> USER_LOCK -> SKU
 
-Reuse the bundled approved background and local information overlay. The default workflow needs no Image Gen call, browser or HTML renderer.
-Generate a new background only when the user requests one.
+Use the bundled approved background and local information overlay. Rendering is local and needs no image-generation model, browser or HTML renderer. New masters use the bundled background; SKUs reuse their locked background.
 
 ## 1. Inputs and official facts
 
@@ -70,8 +69,12 @@ Reuse a current Meta layout. Never remeasure or overwrite a product directory si
 
     python scripts/artifact_flow.py preview --product "<product.png>" --product-dir "<PRODUCT_DIRECTORY>" --candidate-id a
 
-The default background is assets/meta-clear/background.png. Output uses its actual raster, not a forced logical size. The exact product and Logo remain local. The product has no cast shadow.
+The fixed background is assets/meta-clear/background.png. Output uses its actual raster, not a forced logical size. The exact product and Logo remain local. The product has no cast shadow.
 Show the completed full-size preview and stop; do not automatically bind it.
+
+To rebuild an unlocked preview, discard it while keeping reusable product layers, then run preview again:
+
+    python scripts/artifact_flow.py discard-preview --product-dir "<PRODUCT_DIRECTORY>" --candidate-id a
 
 Only after the explicit instruction “锁定母版”:
 
@@ -91,7 +94,7 @@ For a different memory/storage configuration of the same model, supply only the 
 
     python scripts/artifact_flow.py sku --product-dir "<PRODUCT_DIRECTORY>" --configuration "12/512 ГБ"
 
-This reuses the locked background, product layer, title, version, features, layout and raster; only the configuration line is redrawn at its locked position and font size. Do not research facts again, remeasure, generate a background, create another master or request another lock. The master must already contain CONFIGURATION_RECT. The version and three facts must still apply to the variant.
+This reuses the locked background, product layer, title, version, features, layout and raster; only the configuration line is redrawn at its locked position and font size. Do not research facts again, remeasure, create another master or request another lock. The master must already contain CONFIGURATION_RECT. The version and three facts must still apply to the variant.
 
 To change color and configuration together, add --product "<new color.png>". New SKUs with no --configuration inherit the master's configuration. A different model/name or other changes to displayed facts still require a separate master.
 
@@ -99,29 +102,8 @@ Redo the latest SKU:
 
     python scripts/artifact_flow.py sku --product-dir "<PRODUCT_DIRECTORY>" --redo
 
-For an explicitly named SKU add --target SKU_VARIANT-A. On redo, omitted --product, --configuration and --generated-background preserve that SKU's current product, configuration and background. Append --configuration "12/512 ГБ" to change only its configuration. Retain source identity when reusing cached layers.
+For an explicitly named SKU add --target SKU_VARIANT-A. On redo, omitted --product and --configuration preserve that SKU's current product and configuration; its cached background is reused unchanged. Append --configuration "12/512 ГБ" to change only its configuration. Retain source identity when reusing cached layers.
 A redo preserves the old final until all checks pass, atomically replaces the same filename and does not consume a sequence label.
-
-## 5. Optional background changes
-
-Only when requested:
-
-    python scripts/scene_prompt.py build --mode MASTER --layout "<PRODUCT_DIRECTORY>/reusable/layout.json"
-
-For a locked SKU use --mode SKU --master "<PRODUCT_DIRECTORY>/reusable/master.json".
-For a redo append --redo and, only when the user supplied extra requirements, --additional-prompt "<request>". Additions accumulate by product.
-
-Pass successful stdout verbatim to Image Gen. For a new Meta background, pass assets/meta-clear/background.png as the sole referenced_image_paths input; for an SKU use the verified locked ORIGINAL_MASTER_BACKGROUND.png. Inspect an unseen reference first. Omit num_last_images_to_include. Request an opaque background; never send product art, Logo, text or final composites to the model.
-
-A requested change permits one model call. In functions.exec forward the result with generatedImage(result). Missing/unreadable raster, wrong ratio or SKU size mismatch stops the run; never automatically regenerate or resize it.
-
-The prompt keeps top and bottom quiet regions separate. Never merge them across the product. The local renderer supplies the selling-point panel.
-
-For a master redo, discard the previous candidate while keeping reusable product layers:
-
-    python scripts/artifact_flow.py discard-preview --product-dir "<PRODUCT_DIRECTORY>" --candidate-id a
-
-Then preview with --generated-background "<new background.png>". For SKU use that option on sku --redo. Every SKU background must exactly match the locked master's actual raster; matching only the aspect ratio is insufficient.
 
 ## Files and checks
 

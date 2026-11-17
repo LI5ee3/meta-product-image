@@ -303,9 +303,7 @@ def prepare_layout(args: argparse.Namespace) -> dict:
               "rendered_title":"\n".join(title_lines), "title_lines":title_lines, "title_line_count":len(title_lines),
               "title_font_size":title_font.size, "version":args.version, "configuration":configuration, "features":features,
               "feature_headline_lines":headlines, "feature_label_lines":labels, "elements":elements, "text_rects":text_rects,
-              "information_assets":{"overlay":{"path":"information-overlay.png","sha256":sha256_file(reusable/"information-overlay.png")}},
-              "clear_zones":[{"label":"TOP_INFORMATION",**normalized_rect((32,20,736,y-4),768,1024)},
-                             {"label":"BOTTOM_FEATURES",**normalized_rect((32,800,736,1024),768,1024)}]}
+              "information_assets":{"overlay":{"path":"information-overlay.png","sha256":sha256_file(reusable/"information-overlay.png")}}}
     atomic_write(reusable/"layout.json", report, new=True)
     return report
 

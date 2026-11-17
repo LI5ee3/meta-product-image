@@ -111,8 +111,7 @@ def create_preview(args: argparse.Namespace) -> None:
         expected_product_hash = layout.get("product_reference", {}).get("sha256")
         if not product_source.is_file() or sha256_file(product_source) != expected_product_hash:
             raise ValueError("MASTER_PRODUCT_REFERENCE_MISMATCH")
-        background = args.generated_background or DEFAULT_BACKGROUND
-        copy_new(background, paths["background"])
+        copy_new(DEFAULT_BACKGROUND, paths["background"])
         raster = require_three_four_raster(paths["background"], "MASTER_BACKGROUND")
         compose(
             paths["background"], product_source, layout_path, paths["final"],
@@ -257,21 +256,20 @@ def create_sku(args: argparse.Namespace) -> None:
     ensure_output_allowed(product_dir)
     master = verify_master(product_dir)
     expected_raster = normalize_raster_contract(master.get("raster"), "MASTER_RASTER")
-    generated_background = (Path(args.generated_background).expanduser().resolve()
-                            if args.generated_background else product_dir / "reusable" / "ORIGINAL_MASTER_BACKGROUND.png")
-    require_matching_raster(generated_background, expected_raster, "SKU_BACKGROUND")
+    background_source = product_dir / "reusable" / "ORIGINAL_MASTER_BACKGROUND.png"
+    require_matching_raster(background_source, expected_raster, "SKU_BACKGROUND")
     redo = bool(args.redo)
     sku_label = resolve_sku_label(product_dir, redo, args.target)
     paths = sku_preview_paths(product_dir, sku_label)
     previous = read_json(paths["manifest"]) if redo else {}
     if redo and (set(previous.get("files", {})) != {"background", "product", "final"} or "configuration" not in previous):
         raise ValueError("SKU_MANIFEST_INVALID")
-    reuse_background = redo and not args.generated_background
+    reuse_background = redo
     if reuse_background:
         entry = previous["files"]["background"]
         if entry["path"] != paths["background"].relative_to(product_dir).as_posix() or sha256_file(paths["background"]) != entry["sha256"]:
             raise ValueError("SKU_BACKGROUND_HASH_MISMATCH")
-        generated_background = paths["background"]
+        background_source = paths["background"]
     configuration = args.configuration
     if configuration is None:
         configuration = previous["configuration"] if redo else layout["configuration"]
@@ -307,7 +305,7 @@ def create_sku(args: argparse.Namespace) -> None:
     cleanup([replacement, backup])
     try:
         if not reuse_background:
-            copy_new(generated_background, paths["background"])
+            copy_new(background_source, paths["background"])
         if not args.product and not layers_exist:
             copy_new(product_source, paths["product"])
         compose(
@@ -352,7 +350,6 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
     preview = subparsers.add_parser("preview")
-    preview.add_argument("--generated-background", help="defaults to the approved Meta background for new layouts")
     preview.add_argument("--product", required=True)
     preview.add_argument("--product-dir", required=True)
     preview.add_argument("--candidate-id", required=True)
@@ -366,7 +363,6 @@ def main() -> None:
     bind.add_argument("--candidate-id", required=True)
     bind.set_defaults(handler=bind_candidate)
     sku = subparsers.add_parser("sku")
-    sku.add_argument("--generated-background", help="defaults to the locked master background")
     sku.add_argument("--product", help="omit to reuse the master product, or the target SKU product on redo")
     sku.add_argument("--configuration", help="replace only the memory/storage configuration on the locked layout")
     sku.add_argument("--product-dir", required=True)
